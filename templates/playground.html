@@ -1,0 +1,325 @@
+{% extends "base.html" %}
+
+{% block title %}操作頁面 - OpenCV 教學平台{% endblock %}
+
+{% block extra_head %}
+<style>
+    .sidebar {
+        height: calc(100vh - 56px);
+        overflow-y: auto;
+        background: #f8f9fa;
+        border-right: 1px solid #dee2e6;
+    }
+    .main-content {
+        height: calc(100vh - 56px);
+        overflow-y: auto;
+    }
+    .effect-btn {
+        text-align: left;
+        border: none;
+        background: none;
+        padding: 8px 16px;
+        width: 100%;
+        cursor: pointer;
+        transition: background 0.2s;
+    }
+    .effect-btn:hover {
+        background: #e9ecef;
+    }
+    .effect-btn.active {
+        background: #0dcaf0;
+        color: white;
+    }
+    .category-header {
+        font-weight: bold;
+        padding: 10px 16px;
+        background: #dee2e6;
+        margin-top: 10px;
+    }
+    .category-header:first-child {
+        margin-top: 0;
+    }
+    .image-container {
+        min-height: 300px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: #f0f0f0;
+        border-radius: 8px;
+    }
+    .image-container img {
+        max-width: 100%;
+        max-height: 500px;
+        object-fit: contain;
+    }
+    .code-container {
+        max-height: 400px;
+        overflow-y: auto;
+    }
+    .upload-zone {
+        border: 3px dashed #ccc;
+        border-radius: 10px;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+    }
+    .upload-zone:hover {
+        border-color: #0dcaf0;
+        background: #f8f9fa;
+    }
+    .upload-zone.dragover {
+        border-color: #0dcaf0;
+        background: #e0f7fa;
+    }
+    .loading {
+        display: none;
+    }
+    .loading.show {
+        display: block;
+    }
+    pre code {
+        font-size: 0.85rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- 左側選單 -->
+        <div class="col-md-3 col-lg-2 p-0 sidebar">
+            {% for category, effects in categories.items() %}
+            <div class="category-header">{{ category }}</div>
+            {% for effect in effects %}
+            <button class="effect-btn" data-effect="{{ effect.id }}">
+                {{ effect.name }}
+            </button>
+            {% endfor %}
+            {% endfor %}
+        </div>
+
+        <!-- 主要內容區 -->
+        <div class="col-md-9 col-lg-10 main-content p-4">
+            <!-- 上傳區域 -->
+            <div id="uploadSection" class="mb-4">
+                <div class="upload-zone" id="uploadZone">
+                    <div class="mb-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="text-muted" viewBox="0 0 16 16">
+                            <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                            <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                        </svg>
+                    </div>
+                    <h4>拖曳圖片到這裡</h4>
+                    <p class="text-muted mb-2">或點擊選擇檔案</p>
+                    <p class="text-muted small">支援 PNG, JPG, GIF, BMP, WebP (最大 16MB)</p>
+                    <input type="file" id="fileInput" accept="image/*" style="display: none;">
+                </div>
+            </div>
+
+            <!-- 結果區域 -->
+            <div id="resultSection" style="display: none;">
+                <div class="row">
+                    <!-- 原圖 -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header bg-secondary text-white">
+                                <h6 class="mb-0">原始影像</h6>
+                            </div>
+                            <div class="card-body image-container">
+                                <img id="originalImage" src="" alt="原始影像">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 處理後 -->
+                    <div class="col-md-6 mb-4">
+                        <div class="card">
+                            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">處理結果: <span id="effectName">原始影像</span></h6>
+                                <div class="spinner-border spinner-border-sm text-light loading" id="loadingSpinner" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                            </div>
+                            <div class="card-body image-container">
+                                <img id="resultImage" src="" alt="處理結果">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 程式碼區域 -->
+                <div class="card mb-4">
+                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0">程式碼</h6>
+                        <button class="btn btn-sm btn-outline-light" id="copyCodeBtn">複製程式碼</button>
+                    </div>
+                    <div class="card-body code-container p-0">
+                        <pre class="m-0"><code id="codeBlock" class="python"></code></pre>
+                    </div>
+                </div>
+
+                <!-- 重新上傳 -->
+                <div class="text-center">
+                    <button class="btn btn-outline-secondary" id="resetBtn">
+                        上傳新圖片
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+let currentFilename = null;
+let currentEffect = 'original';
+
+const uploadZone = document.getElementById('uploadZone');
+const fileInput = document.getElementById('fileInput');
+const uploadSection = document.getElementById('uploadSection');
+const resultSection = document.getElementById('resultSection');
+const originalImage = document.getElementById('originalImage');
+const resultImage = document.getElementById('resultImage');
+const effectName = document.getElementById('effectName');
+const codeBlock = document.getElementById('codeBlock');
+const loadingSpinner = document.getElementById('loadingSpinner');
+const effectBtns = document.querySelectorAll('.effect-btn');
+const copyCodeBtn = document.getElementById('copyCodeBtn');
+const resetBtn = document.getElementById('resetBtn');
+
+// 拖曳上傳
+uploadZone.addEventListener('click', () => fileInput.click());
+
+uploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    uploadZone.classList.add('dragover');
+});
+
+uploadZone.addEventListener('dragleave', () => {
+    uploadZone.classList.remove('dragover');
+});
+
+uploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    uploadZone.classList.remove('dragover');
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+        uploadFile(files[0]);
+    }
+});
+
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        uploadFile(e.target.files[0]);
+    }
+});
+
+// 上傳檔案
+async function uploadFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('{{ url_for("upload") }}', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            currentFilename = data.filename;
+            originalImage.src = data.url;
+            uploadSection.style.display = 'none';
+            resultSection.style.display = 'block';
+
+            // 預設顯示原始影像
+            processImage('original');
+        } else {
+            alert(data.error || '上傳失敗');
+        }
+    } catch (error) {
+        alert('上傳失敗: ' + error.message);
+    }
+}
+
+// 處理影像
+async function processImage(effect) {
+    if (!currentFilename) return;
+
+    loadingSpinner.classList.add('show');
+    currentEffect = effect;
+
+    // 更新按鈕狀態
+    effectBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.effect === effect);
+    });
+
+    try {
+        const response = await fetch('{{ url_for("process") }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                filename: currentFilename,
+                effect: effect
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            resultImage.src = data.image;
+            codeBlock.textContent = data.code;
+            hljs.highlightElement(codeBlock);
+
+            // 更新效果名稱
+            const btn = document.querySelector(`[data-effect="${effect}"]`);
+            if (btn) {
+                effectName.textContent = btn.textContent.trim();
+            }
+        } else {
+            alert(data.error || '處理失敗');
+        }
+    } catch (error) {
+        alert('處理失敗: ' + error.message);
+    } finally {
+        loadingSpinner.classList.remove('show');
+    }
+}
+
+// 效果按鈕點擊
+effectBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        processImage(btn.dataset.effect);
+    });
+});
+
+// 複製程式碼
+copyCodeBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(codeBlock.textContent).then(() => {
+        copyCodeBtn.textContent = '已複製!';
+        setTimeout(() => {
+            copyCodeBtn.textContent = '複製程式碼';
+        }, 2000);
+    });
+});
+
+// 重設
+resetBtn.addEventListener('click', () => {
+    currentFilename = null;
+    currentEffect = 'original';
+    uploadSection.style.display = 'block';
+    resultSection.style.display = 'none';
+    fileInput.value = '';
+
+    effectBtns.forEach(btn => btn.classList.remove('active'));
+});
+
+// 初始化 highlight.js
+hljs.highlightAll();
+</script>
+{% endblock %}

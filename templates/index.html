@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}OpenCV 教學平台{% endblock %}
+
+{% block content %}
+<div class="hero-section py-5 bg-dark text-white">
+    <div class="container text-center">
+        <h1 class="display-4 mb-3">
+            <span class="text-info">OpenCV</span> 互動教學平台
+        </h1>
+        <p class="lead mb-4">上傳圖片，即時體驗各種影像處理效果</p>
+        <a href="{{ url_for('playground') }}" class="btn btn-info btn-lg">
+            開始體驗
+        </a>
+    </div>
+</div>
+
+<div class="container py-5">
+    <h2 class="text-center mb-4">可用的 OpenCV 效果</h2>
+
+    <div class="row">
+        {% for category, effects in categories.items() %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">{{ category }}</h5>
+                </div>
+                <ul class="list-group list-group-flush">
+                    {% for effect in effects %}
+                    <li class="list-group-item">{{ effect.name }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="mt-5 p-4 bg-light rounded">
+        <h4>使用說明</h4>
+        <ol class="mb-0">
+            <li>點擊「開始體驗」進入操作頁面</li>
+            <li>上傳一張圖片</li>
+            <li>從左側選單選擇想要體驗的效果</li>
+            <li>查看處理結果和對應的程式碼</li>
+        </ol>
+    </div>
+</div>
+{% endblock %}
