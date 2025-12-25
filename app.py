@@ -29,17 +29,13 @@ real_app.secret_key = 'opencv_playground_2024'
 # 路徑設定
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOAD_FOLDER = os.path.join(BASE_DIR, 'static', 'uploads')
-SUBMISSIONS_FOLDER = os.path.join(BASE_DIR, 'static', 'submissions')
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp'}
-ALLOWED_CODE_EXTENSIONS = {'py'}
 
 real_app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
-real_app.config['SUBMISSIONS_FOLDER'] = SUBMISSIONS_FOLDER
 real_app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB
 
 # 確保資料夾存在
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-os.makedirs(SUBMISSIONS_FOLDER, exist_ok=True)
 
 
 def allowed_file(filename):
@@ -475,102 +471,6 @@ def get_session_variables():
             variables_info[key] = f'{type(value).__name__}'
 
     return jsonify({'variables': variables_info})
-
-
-# ===== 作業上傳 =====
-
-@real_app.route('/submissions')
-def submissions():
-    """作業上傳與展示頁面"""
-    # 讀取已上傳的作業
-    submissions_data = {}
-    for group_num in range(1, 7):
-        group_folder = os.path.join(SUBMISSIONS_FOLDER, f'group_{group_num}')
-        if os.path.exists(group_folder):
-            files = os.listdir(group_folder)
-            submissions_data[group_num] = {
-                'has_submission': len(files) > 0,
-                'files': files
-            }
-        else:
-            submissions_data[group_num] = {
-                'has_submission': False,
-                'files': []
-            }
-
-    return render_template('submissions.html',
-                           vi_indices=VEGETATION_INDICES,
-                           submissions=submissions_data)
-
-
-@real_app.route('/submit_assignment', methods=['POST'])
-def submit_assignment():
-    """上傳作業"""
-    group_num = request.form.get('group_num')
-    vi_type = request.form.get('vi_type')
-
-    if not group_num or not vi_type:
-        return jsonify({'error': '缺少組別或指標類型'}), 400
-
-    # 建立組別資料夾
-    group_folder = os.path.join(SUBMISSIONS_FOLDER, f'group_{group_num}')
-    os.makedirs(group_folder, exist_ok=True)
-
-    saved_files = []
-
-    # 處理上傳的檔案
-    file_types = ['original', 'vi_map', 'mask', 'result', 'histogram', 'code']
-
-    for file_type in file_types:
-        if file_type in request.files:
-            file = request.files[file_type]
-            if file and file.filename:
-                # 產生檔名
-                ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'png'
-                filename = f'{vi_type}_{file_type}.{ext}'
-                filepath = os.path.join(group_folder, filename)
-                file.save(filepath)
-                saved_files.append(filename)
-
-    return jsonify({
-        'success': True,
-        'message': f'第 {group_num} 組作業上傳成功',
-        'files': saved_files
-    })
-
-
-@real_app.route('/get_submission/<int:group_num>')
-def get_submission(group_num):
-    """取得特定組別的作業內容"""
-    group_folder = os.path.join(SUBMISSIONS_FOLDER, f'group_{group_num}')
-
-    if not os.path.exists(group_folder):
-        return jsonify({'error': '該組別尚未上傳作業'}), 404
-
-    files = os.listdir(group_folder)
-    submission_data = {
-        'group_num': group_num,
-        'files': {}
-    }
-
-    for filename in files:
-        filepath = os.path.join(group_folder, filename)
-
-        if filename.endswith('.py'):
-            # 讀取程式碼
-            with open(filepath, 'r', encoding='utf-8') as f:
-                submission_data['files'][filename] = {
-                    'type': 'code',
-                    'content': f.read()
-                }
-        else:
-            # 圖片轉 Base64
-            submission_data['files'][filename] = {
-                'type': 'image',
-                'url': url_for('static', filename=f'submissions/group_{group_num}/{filename}')
-            }
-
-    return jsonify(submission_data)
 
 
 # ===== DispatcherMiddleware 設定 =====
