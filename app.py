@@ -276,93 +276,207 @@ def playground():
                            numpy_categories=numpy_categories)
 
 
-# ===== 植生指標實作 =====
+# ===== 程式實作區 =====
+
+# 用於儲存各 session 的變數
+code_sessions = {}
+
+# 範例圖片路徑
+SAMPLE_IMAGE_PATH = os.path.join(BASE_DIR, 'static', 'sample', 'plant_sample.jpg')
+
 
 @real_app.route('/vi_lab')
 def vi_lab():
-    """植生指標實作頁面"""
+    """程式實作區頁面"""
     return render_template('vi_lab.html', vi_indices=VEGETATION_INDICES)
 
 
-@real_app.route('/vi_info')
-def vi_info():
-    """取得植生指標資訊"""
-    return jsonify(get_all_vi_info())
+@real_app.route('/get_sample_image')
+def get_sample_image():
+    """取得範例圖片"""
+    if os.path.exists(SAMPLE_IMAGE_PATH):
+        img = cv2.imread(SAMPLE_IMAGE_PATH)
+        if img is not None:
+            # 限制大小
+            max_size = 500
+            h, w = img.shape[:2]
+            if max(h, w) > max_size:
+                scale = max_size / max(h, w)
+                img = cv2.resize(img, None, fx=scale, fy=scale)
+            return jsonify({
+                'success': True,
+                'image': f'data:image/png;base64,{image_to_base64(img)}',
+                'shape': list(img.shape)
+            })
+    return jsonify({'error': '範例圖片不存在'}), 404
 
 
-@real_app.route('/process_vi_step', methods=['POST'])
-def process_vi_step_route():
-    """分步驟處理植生指標"""
+@real_app.route('/execute_code', methods=['POST'])
+def execute_code():
+    """執行學生程式碼"""
     data = request.get_json()
+    code = data.get('code', '')
+    session_id = data.get('session_id', 'default')
+    cell_id = data.get('cell_id', 0)
 
-    filename = data.get('filename')
-    vi_type = data.get('vi_type', 'ExG')
-    step = data.get('step', 1)
+    # 初始化 session
+    if session_id not in code_sessions:
+        code_sessions[session_id] = {
+            'variables': {},
+            'outputs': []
+        }
 
-    if not filename:
-        return jsonify({'error': '缺少圖片'}), 400
+    session = code_sessions[session_id]
 
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    # 讀取範例圖片作為 img 變數
+    sample_img = None
+    if os.path.exists(SAMPLE_IMAGE_PATH):
+        sample_img = cv2.imread(SAMPLE_IMAGE_PATH)
+        if sample_img is not None:
+            max_size = 500
+            h, w = sample_img.shape[:2]
+            if max(h, w) > max_size:
+                scale = max_size / max(h, w)
+                sample_img = cv2.resize(sample_img, None, fx=scale, fy=scale)
 
-    if not os.path.exists(filepath):
-        return jsonify({'error': '圖片不存在'}), 404
+    # 建立執行環境
+    exec_globals = {
+        'cv2': cv2,
+        'np': np,
+        'numpy': np,
+        '__builtins__': {
+            'print': print,
+            'len': len,
+            'range': range,
+            'int': int,
+            'float': float,
+            'str': str,
+            'list': list,
+            'dict': dict,
+            'tuple': tuple,
+            'abs': abs,
+            'max': max,
+            'min': min,
+            'sum': sum,
+            'round': round,
+            'type': type,
+            'isinstance': isinstance,
+        }
+    }
 
-    img = cv2.imread(filepath)
+    # 加入之前 session 的變數
+    exec_globals.update(session['variables'])
 
-    if img is None:
-        return jsonify({'error': '無法讀取圖片'}), 400
+    # 如果沒有 img 變數，加入範例圖片
+    if 'img' not in exec_globals and sample_img is not None:
+        exec_globals['img'] = sample_img.copy()
 
-    # 限制圖片大小
-    max_size = 600
-    h, w = img.shape[:2]
-    if max(h, w) > max_size:
-        scale = max_size / max(h, w)
-        img = cv2.resize(img, None, fx=scale, fy=scale)
+    # 準備輸出捕捉
+    output_lines = []
+    original_print = print
+
+    def capture_print(*args, **kwargs):
+        output_lines.append(' '.join(str(a) for a in args))
+
+    exec_globals['__builtins__']['print'] = capture_print
 
     try:
-        result = process_vi_step(img, vi_type, step)
-        return jsonify(result)
+        # 執行程式碼
+        exec(code, exec_globals)
+
+        # 儲存變數到 session (排除模組和內建)
+        for key, value in exec_globals.items():
+            if not key.startswith('_') and key not in ['cv2', 'np', 'numpy']:
+                if isinstance(value, (np.ndarray, int, float, str, list, dict, tuple)):
+                    session['variables'][key] = value
+
+        # 準備回傳的圖片結果
+        images = {}
+        variables_info = {}
+
+        for key, value in session['variables'].items():
+            if isinstance(value, np.ndarray):
+                if value.ndim == 2 or (value.ndim == 3 and value.shape[2] in [1, 3, 4]):
+                    # 是圖片
+                    try:
+                        if value.ndim == 2:
+                            # 灰階圖，正規化顯示
+                            display_img = value.copy()
+                            if display_img.dtype != np.uint8:
+                                if display_img.max() > 1 or display_img.min() < 0:
+                                    display_img = cv2.normalize(display_img, None, 0, 255, cv2.NORM_MINMAX)
+                                else:
+                                    display_img = (display_img * 255).clip(0, 255)
+                                display_img = display_img.astype(np.uint8)
+                            display_img = cv2.cvtColor(display_img, cv2.COLOR_GRAY2BGR)
+                        else:
+                            display_img = value.copy()
+                            if display_img.dtype != np.uint8:
+                                display_img = display_img.astype(np.uint8)
+
+                        images[key] = f'data:image/png;base64,{image_to_base64(display_img)}'
+                        variables_info[key] = f'ndarray {value.shape} {value.dtype}'
+                    except:
+                        variables_info[key] = f'ndarray {value.shape} {value.dtype}'
+                else:
+                    variables_info[key] = f'ndarray {value.shape} {value.dtype}'
+            elif isinstance(value, (int, float)):
+                variables_info[key] = f'{type(value).__name__}: {value}'
+            elif isinstance(value, str):
+                variables_info[key] = f'str: "{value[:50]}..."' if len(value) > 50 else f'str: "{value}"'
+            elif isinstance(value, (list, tuple)):
+                variables_info[key] = f'{type(value).__name__} len={len(value)}'
+            elif isinstance(value, dict):
+                variables_info[key] = f'dict keys={list(value.keys())[:5]}'
+
+        return jsonify({
+            'success': True,
+            'output': '\n'.join(output_lines),
+            'images': images,
+            'variables': variables_info
+        })
+
     except Exception as e:
         import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+        error_msg = traceback.format_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e),
+            'traceback': error_msg
+        })
 
 
-@real_app.route('/process_vi_full', methods=['POST'])
-def process_vi_full_route():
-    """完整處理植生指標"""
+@real_app.route('/reset_session', methods=['POST'])
+def reset_session():
+    """重置 session"""
     data = request.get_json()
+    session_id = data.get('session_id', 'default')
 
-    filename = data.get('filename')
-    vi_type = data.get('vi_type', 'ExG')
+    if session_id in code_sessions:
+        del code_sessions[session_id]
 
-    if not filename:
-        return jsonify({'error': '缺少圖片'}), 400
+    return jsonify({'success': True, 'message': 'Session 已重置'})
 
-    filepath = os.path.join(UPLOAD_FOLDER, filename)
 
-    if not os.path.exists(filepath):
-        return jsonify({'error': '圖片不存在'}), 404
+@real_app.route('/get_session_variables', methods=['POST'])
+def get_session_variables():
+    """取得 session 中的變數"""
+    data = request.get_json()
+    session_id = data.get('session_id', 'default')
 
-    img = cv2.imread(filepath)
+    if session_id not in code_sessions:
+        return jsonify({'variables': {}})
 
-    if img is None:
-        return jsonify({'error': '無法讀取圖片'}), 400
+    session = code_sessions[session_id]
+    variables_info = {}
 
-    # 限制圖片大小
-    max_size = 600
-    h, w = img.shape[:2]
-    if max(h, w) > max_size:
-        scale = max_size / max(h, w)
-        img = cv2.resize(img, None, fx=scale, fy=scale)
+    for key, value in session['variables'].items():
+        if isinstance(value, np.ndarray):
+            variables_info[key] = f'ndarray {value.shape} {value.dtype}'
+        else:
+            variables_info[key] = f'{type(value).__name__}'
 
-    try:
-        result = process_vi_full(img, vi_type)
-        return jsonify(result)
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return jsonify({'error': str(e)}), 500
+    return jsonify({'variables': variables_info})
 
 
 # ===== 作業上傳 =====
