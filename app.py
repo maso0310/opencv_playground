@@ -339,29 +339,26 @@ def execute_code():
                 scale = max_size / max(h, w)
                 sample_img = cv2.resize(sample_img, None, fx=scale, fy=scale)
 
+    # 準備輸出捕捉
+    output_lines = []
+
+    def capture_print(*args, **kwargs):
+        output_lines.append(' '.join(str(a) for a in args))
+
+    # 建立安全的 builtins (複製並替換 print)
+    import builtins
+    safe_builtins = {k: getattr(builtins, k) for k in dir(builtins) if not k.startswith('_')}
+    safe_builtins['print'] = capture_print
+    # 移除危險函數
+    for dangerous in ['eval', 'exec', 'compile', 'open', 'input', '__import__']:
+        safe_builtins.pop(dangerous, None)
+
     # 建立執行環境
     exec_globals = {
         'cv2': cv2,
         'np': np,
         'numpy': np,
-        '__builtins__': {
-            'print': print,
-            'len': len,
-            'range': range,
-            'int': int,
-            'float': float,
-            'str': str,
-            'list': list,
-            'dict': dict,
-            'tuple': tuple,
-            'abs': abs,
-            'max': max,
-            'min': min,
-            'sum': sum,
-            'round': round,
-            'type': type,
-            'isinstance': isinstance,
-        }
+        '__builtins__': safe_builtins,
     }
 
     # 加入之前 session 的變數
@@ -370,15 +367,6 @@ def execute_code():
     # 如果沒有 img 變數，加入範例圖片
     if 'img' not in exec_globals and sample_img is not None:
         exec_globals['img'] = sample_img.copy()
-
-    # 準備輸出捕捉
-    output_lines = []
-    original_print = print
-
-    def capture_print(*args, **kwargs):
-        output_lines.append(' '.join(str(a) for a in args))
-
-    exec_globals['__builtins__']['print'] = capture_print
 
     try:
         # 執行程式碼
