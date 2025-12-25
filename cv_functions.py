@@ -26,13 +26,89 @@ def get_all_effects():
         'original': {
             'name': '原始影像',
             'category': '基礎',
-            'description': '顯示原始上傳的影像，不做任何處理。這是 OpenCV 讀取影像的基本操作。',
+            'description': '''顯示原始上傳的影像，不做任何處理。
+
+## 基本概念
+
+在 OpenCV 中，影像就是一個 **NumPy 陣列**（ndarray），每個元素代表一個像素值。
+
+### 影像的基本屬性
+
+| 屬性 | 說明 | 範例 |
+|------|------|------|
+| `shape` | 影像尺寸 | `(480, 640, 3)` = 高480、寬640、3通道 |
+| `dtype` | 資料型態 | 通常是 `uint8`（0-255） |
+| `size` | 總像素數 | `480 × 640 × 3 = 921600` |
+
+### 讀取影像
+
+```python
+import cv2
+
+# 讀取彩色影像
+img = cv2.imread('image.jpg')
+
+# 讀取灰階影像
+gray = cv2.imread('image.jpg', cv2.IMREAD_GRAYSCALE)
+
+# 顯示影像
+cv2.imshow('Window', img)
+cv2.waitKey(0)
+```
+
+> **注意**：OpenCV 預設使用 **BGR** 順序（藍-綠-紅），而非一般常見的 RGB 順序！
+
+### 延伸學習
+
+- [OpenCV 官方文件 - 讀取影像](https://docs.opencv.org/4.x/d4/da8/group__imgcodecs.html)
+''',
             'params': []
         },
         'channels': {
             'name': '通道拆解 (BGR)',
             'category': '基礎',
-            'description': '將彩色影像拆解為藍(B)、綠(G)、紅(R)三個通道。OpenCV 使用 BGR 順序而非 RGB。每個通道都是一個灰階影像，數值範圍 0-255。',
+            'description': '''將彩色影像拆解為藍(B)、綠(G)、紅(R)三個通道。
+
+## 核心概念
+
+彩色影像是由三個「通道」疊加而成，每個通道記錄該顏色的強度（0-255）。
+
+### 為什麼是 BGR 而非 RGB？
+
+| 順序 | 使用者 | 說明 |
+|------|--------|------|
+| **BGR** | OpenCV | 歷史原因，早期相機和顯示器使用 BGR |
+| **RGB** | Matplotlib、PIL、網頁 | 較直覺的紅-綠-藍順序 |
+
+```python
+# BGR 與 RGB 轉換
+rgb_img = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
+bgr_img = cv2.cvtColor(rgb_img, cv2.COLOR_RGB2BGR)
+```
+
+### 通道拆解與合併
+
+```python
+import cv2
+
+img = cv2.imread('image.jpg')
+
+# 拆解通道
+b, g, r = cv2.split(img)
+
+# 合併通道（可調換順序）
+merged = cv2.merge([b, g, r])
+```
+
+### 實際應用
+
+- **去除紅眼**：降低紅色通道在眼睛區域的值
+- **色彩調整**：單獨調整某個通道的對比度
+- **特徵提取**：某些物體在特定通道更明顯
+- **綠幕去背**：利用綠色通道分離前景
+
+> **提示**：使用 `cv2.split()` 拆解通道會建立資料副本；如果只需讀取，可用 `img[:,:,0]` 切片方式更有效率。
+''',
             'params': [
                 {'name': 'channel', 'label': '顯示通道', 'type': 'select',
                  'options': [
@@ -46,7 +122,50 @@ def get_all_effects():
         'arithmetic': {
             'name': '影像運算',
             'category': '基礎',
-            'description': '對影像進行加法或減法運算，可用於調整亮度。cv2.add() 會自動處理溢位（超過255變成255），而直接使用 + 運算子可能會溢位。',
+            'description': '''對影像進行加法或減法運算，最基本的像素操作。
+
+## 溢位問題
+
+像素值必須在 0-255 範圍內，超出時會發生溢位：
+
+| 運算方式 | 200 + 100 | 說明 |
+|----------|-----------|------|
+| `cv2.add()` | **255** | 飽和運算，超過 255 就設為 255 |
+| `img + 100` | **44** | 溢位！(300 % 256 = 44) |
+
+```python
+import cv2
+import numpy as np
+
+img = cv2.imread('image.jpg')
+
+# ✅ 正確做法：使用 cv2.add()
+bright = cv2.add(img, 50)  # 整體加亮
+
+# ❌ 危險做法：直接加法可能溢位
+# bright = img + 50  # 可能產生奇怪的結果
+```
+
+### 亮度與對比度調整
+
+更完整的亮度/對比度調整公式：
+
+```python
+# new_pixel = α × old_pixel + β
+# α：對比度 (1.0 = 不變, >1 增加對比)
+# β：亮度 (+50 變亮, -50 變暗)
+
+result = cv2.convertScaleAbs(img, alpha=1.2, beta=30)
+```
+
+### 實際應用
+
+- **曝光校正**：照片太暗時增加亮度
+- **HDR 合成**：多張不同曝光照片合成
+- **影像差異**：兩張圖相減找出變化區域
+
+> **提示**：`cv2.subtract()` 會將負數設為 0，同樣避免溢位問題。
+''',
             'params': [
                 {'name': 'operation', 'label': '運算類型', 'type': 'select',
                  'options': [
@@ -60,7 +179,52 @@ def get_all_effects():
         'weighted': {
             'name': '影像加權和',
             'category': '基礎',
-            'description': '將兩張影像按比例混合：dst = src1 × α + src2 × β + γ。這個公式讓你可以控制兩張圖的混合比例。α+β 不一定要等於 1，但若總和為 1 可保持亮度。常見應用包括：影像融合（如全景圖拼接的過渡區域）、半透明浮水印、影片淡入淡出效果、將圖片疊加到背景上。γ 參數可以調整整體亮度。',
+            'description': '''將兩張影像按權重比例混合，實現影像融合效果。
+
+## 公式說明
+
+```
+dst = src1 × α + src2 × β + γ
+```
+
+| 參數 | 意義 | 範圍 |
+|------|------|------|
+| **α** (alpha) | 第一張圖的權重 | 0.0 ~ 1.0 |
+| **β** (beta) | 第二張圖的權重 | 通常 = 1-α |
+| **γ** (gamma) | 亮度調整值 | -255 ~ 255 |
+
+### 基本用法
+
+```python
+import cv2
+
+img1 = cv2.imread('photo.jpg')
+img2 = cv2.imread('watermark.png')
+
+# α=0.7 表示 70% 原圖 + 30% 浮水印
+result = cv2.addWeighted(img1, 0.7, img2, 0.3, 0)
+```
+
+### 淡入淡出效果
+
+```python
+# 影片轉場效果：從 img1 漸變到 img2
+for alpha in np.linspace(1, 0, 30):  # 30 個步驟
+    beta = 1 - alpha
+    frame = cv2.addWeighted(img1, alpha, img2, beta, 0)
+    cv2.imshow('Transition', frame)
+    cv2.waitKey(50)
+```
+
+### 實際應用
+
+- **半透明浮水印**：logo 疊加在影片上
+- **全景圖拼接**：重疊區域的平滑過渡
+- **影片淡入淡出**：轉場特效
+- **影像比對**：快速切換兩張圖比較差異
+
+> **注意**：兩張圖的尺寸必須相同！若不同需先用 `cv2.resize()` 調整。
+''',
             'params': [
                 {'name': 'alpha', 'label': '原圖權重 (α)', 'type': 'slider',
                  'min': 0, 'max': 1, 'step': 0.05, 'default': 0.7},
@@ -85,7 +249,70 @@ def get_all_effects():
         'bitwise': {
             'name': '逐位元邏輯運算',
             'category': '基礎',
-            'description': '「逐位元」是指對每個像素的二進位值逐一進行邏輯運算。例如像素值 200（二進位 11001000）與 50（00110010）進行 AND 運算，會得到 00000000（0）。這是因為 AND 運算只有兩個位元都是 1 時結果才是 1。\n\n【四種運算】\n• AND（交集）：兩者都為 1 才是 1，常用於「遮罩提取」，只保留遮罩為白色（255）的區域\n• OR（聯集）：任一為 1 就是 1，用於合併兩張圖的亮部\n• XOR（互斥或）：兩者不同才是 1，用於找出差異區域或簡易加密\n• NOT（反轉）：0 變 1、1 變 0，產生負片效果\n\n【實際應用】：去背合成、Logo 浮水印、遮罩選取、影像加密',
+            'description': '''對每個像素的二進位值進行邏輯運算，是影像合成的核心技術。
+
+## 四種運算
+
+| 運算 | 符號 | 規則 | 主要用途 |
+|------|------|------|----------|
+| **AND** | `&` | 兩者都為 1 才是 1 | 遮罩提取 |
+| **OR** | `｜` | 任一為 1 就是 1 | 合併亮部 |
+| **XOR** | `^` | 兩者不同才是 1 | 找差異、加密 |
+| **NOT** | `~` | 0 變 1、1 變 0 | 負片效果 |
+
+### 遮罩提取範例
+
+```python
+import cv2
+import numpy as np
+
+img = cv2.imread('photo.jpg')
+h, w = img.shape[:2]
+
+# 建立圓形遮罩（白色圓、黑色背景）
+mask = np.zeros((h, w), dtype=np.uint8)
+cv2.circle(mask, (w//2, h//2), 100, 255, -1)
+
+# AND 運算：只保留圓形區域
+result = cv2.bitwise_and(img, img, mask=mask)
+```
+
+### Logo 合成（去背疊加）
+
+```python
+# 經典的 Logo 疊加技巧
+logo = cv2.imread('logo.png')
+roi = img[0:logo.shape[0], 0:logo.shape[1]]
+
+# 1. 建立 Logo 遮罩
+gray = cv2.cvtColor(logo, cv2.COLOR_BGR2GRAY)
+_, mask = cv2.threshold(gray, 10, 255, cv2.THRESH_BINARY)
+mask_inv = cv2.bitwise_not(mask)
+
+# 2. 在 ROI 中挖洞
+bg = cv2.bitwise_and(roi, roi, mask=mask_inv)
+
+# 3. 取出 Logo 前景
+fg = cv2.bitwise_and(logo, logo, mask=mask)
+
+# 4. 合併
+dst = cv2.add(bg, fg)
+img[0:logo.shape[0], 0:logo.shape[1]] = dst
+```
+
+### 位元運算示意
+
+```
+像素值 200 = 11001000
+像素值  50 = 00110010
+─────────────────────
+AND 結果   = 00000000 (0)
+OR 結果    = 11111010 (250)
+XOR 結果   = 11111010 (250)
+```
+
+> **提示**：遮罩（mask）通常是灰階圖，白色區域（255）會被保留，黑色區域（0）會被遮蔽。
+''',
             'params': [
                 {'name': 'operation', 'label': '運算類型', 'type': 'select',
                  'options': [
@@ -113,7 +340,59 @@ def get_all_effects():
         'bit_plane': {
             'name': '位元平面分解',
             'category': '基礎',
-            'description': '每個灰階像素值（0-255）可以用 8 個二進位位元表示，例如 200 = 11001000。「位元平面分解」就是把每個位元單獨提取出來顯示。\n\n【8個平面的意義】\n• 平面 7（MSB，最高位元）：代表 128 的位置，包含影像最主要的結構資訊\n• 平面 6-4：代表 64、32、16，仍包含可辨識的影像輪廓\n• 平面 3-1：代表 8、4、2，開始變得雜亂\n• 平面 0（LSB，最低位元）：代表 1，幾乎是隨機雜訊\n\n【實際應用】\n• 影像隱寫術（Steganography）：在 LSB 藏入秘密訊息，肉眼看不出差異\n• 影像壓縮：只保留高位元平面來減少資料量\n• 浮水印：在較高位元平面嵌入標記\n• 影像分析：檢查不同位元層的資訊分布',
+            'description': '''將每個像素拆解成 8 個位元平面，揭示影像的二進位結構。
+
+## 核心概念
+
+每個灰階像素值（0-255）用 8 個位元表示：
+
+```
+像素值 200 = 1 1 0 0 1 0 0 0
+             ↑             ↑
+           平面7         平面0
+           (MSB)         (LSB)
+           權重128       權重1
+```
+
+### 各平面的意義
+
+| 平面 | 權重 | 資訊含量 | 視覺效果 |
+|------|------|----------|----------|
+| 7 (MSB) | 128 | **最高** | 清晰的影像輪廓 |
+| 6 | 64 | 高 | 仍可辨識結構 |
+| 5 | 32 | 中 | 輪廓開始模糊 |
+| 4 | 16 | 中 | 細節消失 |
+| 3 | 8 | 低 | 雜訊增加 |
+| 2 | 4 | 低 | 幾乎是雜訊 |
+| 1 | 2 | 很低 | 隨機圖案 |
+| 0 (LSB) | 1 | **最低** | 純雜訊 |
+
+### 提取位元平面
+
+```python
+import cv2
+import numpy as np
+
+gray = cv2.imread('image.jpg', cv2.IMREAD_GRAYSCALE)
+
+# 提取第 7 個位元平面（MSB）
+plane_7 = (gray >> 7) & 1
+plane_7 = plane_7 * 255  # 轉成可視化
+
+# 提取第 0 個位元平面（LSB）
+plane_0 = gray & 1
+plane_0 = plane_0 * 255
+```
+
+### 實際應用
+
+- **影像隱寫術**：在 LSB 藏入秘密訊息，肉眼無法察覺
+- **影像壓縮**：只保留高位元平面
+- **數位浮水印**：在特定平面嵌入版權標記
+- **影像分析**：檢測竄改或合成痕跡
+
+> **有趣事實**：高位元平面（7-4）就包含了影像 94% 以上的資訊！
+''',
             'params': [
                 {'name': 'plane', 'label': '位元平面 (0=LSB, 7=MSB)', 'type': 'slider',
                  'min': 0, 'max': 7, 'step': 1, 'default': 7},
@@ -123,7 +402,59 @@ def get_all_effects():
         'encrypt': {
             'name': '影像加密與解密',
             'category': '基礎',
-            'description': '利用 XOR（互斥或）運算進行簡單的對稱式加密。\n\n【XOR 加密原理】\nXOR 有個神奇的特性：對同一個數值做兩次 XOR 會還原！\n• 原始像素 ⊕ 金鑰 = 加密像素\n• 加密像素 ⊕ 金鑰 = 原始像素\n\n例如：200 ⊕ 50 = 254（加密），254 ⊕ 50 = 200（解密）\n\n【金鑰種子】\n我們用隨機數產生器製造金鑰圖。只要種子相同，產生的金鑰就相同，因此：\n• 加密時：設定種子 → 產生金鑰 → XOR\n• 解密時：設定「同樣的」種子 → 產生「同樣的」金鑰 → XOR 還原\n\n【安全性說明】\n這是教學用的簡易加密，真正的影像加密會使用 AES 等專業演算法。',
+            'description': '''利用 XOR 運算的對稱特性進行影像加密與解密。
+
+## XOR 加密原理
+
+XOR 有個神奇的數學特性：**做兩次會還原**
+
+```
+A ⊕ B ⊕ B = A
+```
+
+| 步驟 | 運算 | 結果 |
+|------|------|------|
+| 原始像素 | 200 | `11001000` |
+| 加密 (⊕ 金鑰 50) | 200 ⊕ 50 | **250** `11111010` |
+| 解密 (⊕ 金鑰 50) | 250 ⊕ 50 | **200** `11001000` ✓ |
+
+### 實作範例
+
+```python
+import cv2
+import numpy as np
+
+img = cv2.imread('secret.jpg')
+
+# 產生金鑰（用固定種子確保可重現）
+np.random.seed(42)
+key = np.random.randint(0, 256, img.shape, dtype=np.uint8)
+
+# 加密
+encrypted = cv2.bitwise_xor(img, key)
+cv2.imwrite('encrypted.png', encrypted)
+
+# 解密（用同樣的種子產生同樣的金鑰）
+np.random.seed(42)
+key = np.random.randint(0, 256, img.shape, dtype=np.uint8)
+decrypted = cv2.bitwise_xor(encrypted, key)
+```
+
+### 金鑰種子的重要性
+
+- **種子相同** → 產生的隨機序列相同 → 金鑰相同
+- 種子就是「密碼」，只有知道種子才能解密
+- 種子不同 → 解密出來是亂碼
+
+### 安全性說明
+
+⚠️ **這是教學示範！** 真正的影像加密應使用：
+- AES-256 等專業加密演算法
+- 安全的金鑰交換機制
+- 加密函式庫如 `cryptography` 或 `PyCryptodome`
+
+> **有趣事實**：這種 XOR 加密在 1970 年代曾被用於真正的加密系統，稱為「一次性密碼本」(One-Time Pad)，理論上是無法破解的！
+''',
             'params': [
                 {'name': 'seed', 'label': '金鑰種子', 'type': 'slider',
                  'min': 1, 'max': 100, 'step': 1, 'default': 42},
@@ -140,7 +471,72 @@ def get_all_effects():
         'color_space': {
             'name': '色彩空間轉換',
             'category': '色彩',
-            'description': '不同的色彩空間用不同方式描述顏色，各有其適用場景：\n\n【BGR/RGB】OpenCV 預設使用 BGR（藍綠紅）順序，一般圖片軟體用 RGB。\n\n【HSV】將顏色拆成「色相 H」（顏色種類 0-180）、「飽和度 S」（鮮豔程度）、「明度 V」（亮暗）。非常適合「顏色過濾」，例如找出畫面中所有紅色物體，只需指定 H 的範圍。\n\n【HLS】類似 HSV，但用「亮度 L」取代明度，有些場景更直觀。\n\n【LAB】L 是亮度，A 是綠-紅軸，B 是藍-黃軸。設計上接近人眼感知，常用於色彩校正、計算兩個顏色的「視覺差異」。\n\n【YCrCb】Y 是亮度，Cr/Cb 是色度。JPEG 和影片壓縮常用此格式，因為人眼對亮度敏感、對色度不敏感，可壓縮色度節省空間。也常用於膚色偵測。\n\n【實際應用】顏色過濾追蹤用 HSV、色彩校正用 LAB、皮膚偵測用 YCrCb',
+            'description': '''不同的色彩空間用不同方式描述顏色，各有最適合的應用場景。
+
+## 色彩空間比較
+
+| 色彩空間 | 組成 | 最佳用途 |
+|----------|------|----------|
+| **BGR/RGB** | 藍/綠/紅 | 顯示、儲存 |
+| **HSV** | 色相/飽和度/明度 | 顏色過濾、物體追蹤 |
+| **HLS** | 色相/亮度/飽和度 | 類似 HSV |
+| **LAB** | 亮度/綠紅軸/藍黃軸 | 色彩校正、色差計算 |
+| **YCrCb** | 亮度/紅色度/藍色度 | 膚色偵測、影片壓縮 |
+| **Gray** | 單通道灰階 | 邊緣檢測、二值化 |
+
+### HSV - 顏色過濾的首選
+
+```python
+import cv2
+import numpy as np
+
+img = cv2.imread('fruits.jpg')
+hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+
+# 過濾紅色（注意：紅色在 H 軸兩端 0-10 和 170-180）
+lower_red = np.array([0, 100, 100])
+upper_red = np.array([10, 255, 255])
+mask = cv2.inRange(hsv, lower_red, upper_red)
+
+# 只保留紅色區域
+result = cv2.bitwise_and(img, img, mask=mask)
+```
+
+### 常見顏色的 H 值範圍
+
+| 顏色 | H 值範圍 | 說明 |
+|------|----------|------|
+| 紅色 | 0-10, 170-180 | 跨越兩端 |
+| 橙色 | 10-25 | |
+| 黃色 | 25-35 | |
+| 綠色 | 35-85 | |
+| 藍色 | 85-130 | |
+| 紫色 | 130-170 | |
+
+### LAB - 接近人眼感知
+
+```python
+# 計算兩個顏色的視覺差異
+lab1 = cv2.cvtColor(color1, cv2.COLOR_BGR2LAB)
+lab2 = cv2.cvtColor(color2, cv2.COLOR_BGR2LAB)
+
+# 歐氏距離 = 視覺差異
+delta_e = np.sqrt(np.sum((lab1 - lab2) ** 2))
+```
+
+### YCrCb - 膚色偵測
+
+```python
+ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+
+# 膚色範圍（經驗值）
+lower = np.array([0, 133, 77])
+upper = np.array([255, 173, 127])
+mask = cv2.inRange(ycrcb, lower, upper)
+```
+
+> **提示**：做顏色過濾時，建議先轉 HSV，因為 H 通道直接對應顏色種類，不受光線明暗影響！
+''',
             'params': [
                 {'name': 'space', 'label': '色彩空間', 'type': 'select',
                  'options': [
@@ -171,7 +567,64 @@ def get_all_effects():
         'geometric': {
             'name': '幾何轉換',
             'category': '幾何',
-            'description': '包含縮放、旋轉、平移、翻轉等操作。旋轉使用 getRotationMatrix2D 建立旋轉矩陣，再用 warpAffine 套用。',
+            'description': '''對影像進行縮放、旋轉、翻轉等空間變換。
+
+## 基本操作
+
+### 縮放 (Resize)
+
+```python
+import cv2
+
+img = cv2.imread('image.jpg')
+
+# 指定目標尺寸
+resized = cv2.resize(img, (640, 480))
+
+# 指定縮放比例
+half = cv2.resize(img, None, fx=0.5, fy=0.5)
+double = cv2.resize(img, None, fx=2, fy=2)
+```
+
+### 插值方法比較
+
+| 方法 | 速度 | 品質 | 適用場景 |
+|------|------|------|----------|
+| `INTER_NEAREST` | 最快 | 低 | 放大像素藝術 |
+| `INTER_LINEAR` | 快 | 中 | **預設**、一般縮放 |
+| `INTER_CUBIC` | 中 | 高 | 放大照片 |
+| `INTER_AREA` | 中 | 高 | **縮小**時最佳 |
+
+### 旋轉 (Rotate)
+
+```python
+h, w = img.shape[:2]
+center = (w // 2, h // 2)
+
+# 建立旋轉矩陣（中心點、角度、縮放）
+M = cv2.getRotationMatrix2D(center, 45, 1.0)
+
+# 套用旋轉
+rotated = cv2.warpAffine(img, M, (w, h))
+```
+
+### 翻轉 (Flip)
+
+```python
+# flipCode: 0=垂直翻轉, 1=水平翻轉, -1=雙向
+horizontal = cv2.flip(img, 1)
+vertical = cv2.flip(img, 0)
+both = cv2.flip(img, -1)
+```
+
+### 實際應用
+
+- **資料增強**：訓練 AI 時隨機旋轉、翻轉增加樣本
+- **影像校正**：修正歪斜的文件照片
+- **縮圖產生**：為網頁產生不同尺寸的圖片
+
+> **提示**：旋轉後圖片會有黑邊，可設定 `borderValue` 或裁切處理。
+''',
             'params': [
                 {'name': 'transform', 'label': '轉換類型', 'type': 'select',
                  'options': [
@@ -192,7 +645,65 @@ def get_all_effects():
         'threshold': {
             'name': '二值化處理',
             'category': '二值化',
-            'description': '將灰階影像轉為黑白二值影像。固定閾值需手動設定，Otsu會自動計算最佳閾值，自適應閾值則根據局部區域動態計算。',
+            'description': '''將灰階影像轉為純黑白（0 或 255），是許多影像處理的前置步驟。
+
+## 三種二值化方法
+
+### 1. 固定閾值
+
+最簡單的方法，所有像素與固定值比較：
+
+```python
+import cv2
+
+gray = cv2.imread('image.jpg', cv2.IMREAD_GRAYSCALE)
+
+# 像素值 > 127 設為 255，否則設為 0
+_, binary = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+
+# 反向：像素值 > 127 設為 0，否則設為 255
+_, binary_inv = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY_INV)
+```
+
+### 2. Otsu 自動閾值
+
+自動找出最佳分界點，適合雙峰直方圖：
+
+```python
+# thresh 參數設 0，讓 Otsu 自動計算
+ret, binary = cv2.threshold(gray, 0, 255,
+                            cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+print(f'Otsu 計算的閾值: {ret}')
+```
+
+### 3. 自適應閾值
+
+根據局部區域計算閾值，適合光線不均的影像：
+
+```python
+# adaptiveMethod: MEAN（區域平均）或 GAUSSIAN（加權平均）
+# blockSize: 鄰域大小（奇數）
+# C: 從平均值減去的常數
+
+adaptive = cv2.adaptiveThreshold(
+    gray, 255,
+    cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+    cv2.THRESH_BINARY,
+    11,  # blockSize
+    2    # C
+)
+```
+
+### 方法比較
+
+| 方法 | 優點 | 缺點 | 適用場景 |
+|------|------|------|----------|
+| 固定閾值 | 簡單快速 | 需手動調整 | 光線均勻 |
+| Otsu | 自動計算 | 需雙峰分布 | 前景背景明顯 |
+| 自適應 | 處理光線不均 | 較慢 | 文件掃描、陰影 |
+
+> **提示**：處理文件掃描時，先做高斯模糊去噪，再用自適應閾值效果最好！
+''',
             'params': [
                 {'name': 'method', 'label': '二值化方法', 'type': 'select',
                  'options': [
@@ -213,7 +724,55 @@ def get_all_effects():
         'blur_mean': {
             'name': '均值濾波',
             'category': '平滑處理',
-            'description': '使用鄰域像素的平均值取代中心像素。核心越大，模糊效果越強。這是最基本的卷積濾波操作。',
+            'description': '''最基本的模糊方法，用鄰域像素的平均值取代中心像素。
+
+## 卷積原理
+
+均值濾波是一種「卷積」操作，使用一個核心（kernel）滑過影像：
+
+```
+3×3 均值核心:
+┌─────┬─────┬─────┐
+│ 1/9 │ 1/9 │ 1/9 │
+├─────┼─────┼─────┤
+│ 1/9 │ 1/9 │ 1/9 │
+├─────┼─────┼─────┤
+│ 1/9 │ 1/9 │ 1/9 │
+└─────┴─────┴─────┘
+```
+
+新像素值 = 周圍 9 個像素的平均
+
+### 程式碼
+
+```python
+import cv2
+
+img = cv2.imread('image.jpg')
+
+# 使用 5×5 核心
+blurred = cv2.blur(img, (5, 5))
+
+# 等同於
+# kernel = np.ones((5, 5), np.float32) / 25
+# blurred = cv2.filter2D(img, -1, kernel)
+```
+
+### 核心大小的影響
+
+| 核心大小 | 效果 | 用途 |
+|----------|------|------|
+| 3×3 | 輕微模糊 | 輕微去噪 |
+| 5×5 | 中等模糊 | 一般去噪 |
+| 11×11+ | 強烈模糊 | 背景虛化 |
+
+### 優缺點
+
+- **優點**：計算簡單、速度快
+- **缺點**：模糊邊緣、無法保持細節
+
+> **提示**：核心大小必須是奇數（3, 5, 7...），確保有中心點！
+''',
             'params': [
                 {'name': 'ksize', 'label': '核心大小', 'type': 'slider',
                  'min': 3, 'max': 31, 'step': 2, 'default': 5}
@@ -222,7 +781,59 @@ def get_all_effects():
         'blur_gaussian': {
             'name': '高斯濾波',
             'category': '平滑處理',
-            'description': '使用高斯函數作為權重，越靠近中心權重越大。比均值濾波更自然，常用於去除高斯雜訊。',
+            'description': '''使用高斯分布作為權重的模糊，比均值濾波更自然。
+
+## 高斯核心
+
+權重呈鐘型分布，越靠近中心權重越大：
+
+```
+3×3 高斯核心（示意）:
+┌─────┬─────┬─────┐
+│  1  │  2  │  1  │
+├─────┼─────┼─────┤
+│  2  │  4  │  2  │  ÷ 16
+├─────┼─────┼─────┤
+│  1  │  2  │  1  │
+└─────┴─────┴─────┘
+```
+
+### 程式碼
+
+```python
+import cv2
+
+img = cv2.imread('image.jpg')
+
+# ksize: 核心大小（奇數）
+# sigmaX: 標準差（0 = 自動根據 ksize 計算）
+blurred = cv2.GaussianBlur(img, (5, 5), 0)
+
+# 可分別設定 X 和 Y 方向的 sigma
+blurred = cv2.GaussianBlur(img, (5, 5), sigmaX=1.5, sigmaY=1.5)
+```
+
+### Sigma 的影響
+
+| Sigma | 效果 | 說明 |
+|-------|------|------|
+| 小 (< 1) | 輕微模糊 | 權重集中在中心 |
+| 中 (1-2) | 適中模糊 | 常用範圍 |
+| 大 (> 2) | 強烈模糊 | 權重分散 |
+
+### 與均值濾波比較
+
+- **均值濾波**：所有像素權重相同，會產生「方塊感」
+- **高斯濾波**：中心權重大，過渡更平滑自然
+
+### 實際應用
+
+- 去除高斯雜訊（相機感光元件產生）
+- 邊緣檢測前的預處理
+- 建立「LoG」(Laplacian of Gaussian) 算子
+
+> **提示**：高斯濾波是影像處理最常用的預處理步驟！
+''',
             'params': [
                 {'name': 'ksize', 'label': '核心大小', 'type': 'slider',
                  'min': 3, 'max': 31, 'step': 2, 'default': 5},
@@ -233,7 +844,68 @@ def get_all_effects():
         'blur_median': {
             'name': '中值濾波',
             'category': '平滑處理',
-            'description': '使用鄰域像素的中位數取代中心像素。對椒鹽雜訊特別有效，能保持邊緣清晰，但運算較慢。',
+            'description': '''用鄰域像素的中位數取代中心像素，對椒鹽雜訊特別有效。
+
+## 中位數原理
+
+將鄰域像素排序，取中間值：
+
+```
+鄰域像素: [10, 12, 15, 200, 18, 14, 11, 13, 16]
+         （200 是椒鹽雜訊）
+
+排序後:   [10, 11, 12, 13, 14, 15, 16, 18, 200]
+                         ↑
+                      中位數 = 14
+```
+
+雜訊值 200 被「忽略」了！
+
+### 程式碼
+
+```python
+import cv2
+
+img = cv2.imread('noisy_image.jpg')
+
+# ksize 必須是奇數
+median = cv2.medianBlur(img, 5)
+```
+
+### 與均值濾波比較
+
+| 特性 | 均值濾波 | 中值濾波 |
+|------|----------|----------|
+| 雜訊處理 | 雜訊被「平均」進去 | 雜訊被「忽略」 |
+| 邊緣保持 | 模糊邊緣 | 較好保持邊緣 |
+| 計算速度 | 快 | 較慢（需排序） |
+| 最佳用途 | 高斯雜訊 | **椒鹽雜訊** |
+
+### 椒鹽雜訊
+
+隨機出現的純黑（0）或純白（255）像素：
+- 可能來自感測器故障
+- 傳輸錯誤
+- 損壞的儲存媒體
+
+```python
+# 模擬椒鹽雜訊
+import numpy as np
+
+noisy = img.copy()
+prob = 0.02  # 2% 的像素有雜訊
+
+# 加入「鹽」（白點）
+salt = np.random.random(img.shape[:2]) < prob/2
+noisy[salt] = 255
+
+# 加入「胡椒」（黑點）
+pepper = np.random.random(img.shape[:2]) < prob/2
+noisy[pepper] = 0
+```
+
+> **提示**：中值濾波是去除椒鹽雜訊的首選方法！
+''',
             'params': [
                 {'name': 'ksize', 'label': '核心大小', 'type': 'slider',
                  'min': 3, 'max': 31, 'step': 2, 'default': 5}
@@ -242,7 +914,66 @@ def get_all_effects():
         'blur_bilateral': {
             'name': '雙邊濾波',
             'category': '平滑處理',
-            'description': '同時考慮空間距離和顏色相似度的濾波。可以保持邊緣同時平滑區域，常用於美顏磨皮效果。',
+            'description': '''同時考慮空間距離和顏色相似度的濾波，能保持邊緣同時平滑區域。
+
+## 工作原理
+
+雙邊濾波結合兩種權重：
+
+1. **空間權重**：像素越近，權重越大（類似高斯）
+2. **顏色權重**：顏色越接近，權重越大
+
+```
+邊緣處：
+┌───┬───┬───┐
+│150│155│152│  ← 顏色相近，會被平均
+├───┼───┼───┤
+│148│▓▓▓│ 50│  ← 顏色差異大，不會被平均
+├───┼───┼───┤
+│153│ 48│ 52│
+└───┴───┴───┘
+```
+
+### 程式碼
+
+```python
+import cv2
+
+img = cv2.imread('portrait.jpg')
+
+# d: 鄰域直徑（-1 = 自動根據 sigmaSpace）
+# sigmaColor: 顏色空間的 sigma
+# sigmaSpace: 座標空間的 sigma
+bilateral = cv2.bilateralFilter(img, d=9,
+                                sigmaColor=75,
+                                sigmaSpace=75)
+```
+
+### 參數說明
+
+| 參數 | 建議值 | 說明 |
+|------|--------|------|
+| d | 5-9 | 過大會很慢 |
+| sigmaColor | 50-100 | 越大，顏色差異容忍度越高 |
+| sigmaSpace | 50-100 | 越大，遠處像素影響越大 |
+
+### 實際應用
+
+- **美顏磨皮**：平滑皮膚但保持五官輪廓
+- **卡通化**：配合邊緣檢測製作卡通效果
+- **HDR 處理**：保持細節的色調映射
+
+### 與其他濾波比較
+
+| 濾波方法 | 邊緣保持 | 速度 |
+|----------|----------|------|
+| 均值 | ❌ 差 | 最快 |
+| 高斯 | ❌ 差 | 快 |
+| 中值 | ⚠️ 中 | 中 |
+| 雙邊 | ✅ 好 | **慢** |
+
+> **提示**：雙邊濾波計算量大，不適合即時影片處理！
+''',
             'params': [
                 {'name': 'd', 'label': '鄰域直徑', 'type': 'slider',
                  'min': 3, 'max': 15, 'step': 2, 'default': 9},
@@ -257,7 +988,68 @@ def get_all_effects():
         'morphology': {
             'name': '形態學操作',
             'category': '形態學',
-            'description': '侵蝕(縮小白色區域)、膨脹(擴大白色區域)、開運算(去除小白點)、閉運算(填補小黑洞)、梯度(取得邊緣)。',
+            'description': '''對二值化影像的形狀進行變換，常用於去噪、分割、特徵提取。
+
+## 基本操作
+
+### 侵蝕 (Erosion)
+縮小白色區域，去除小白點
+
+```python
+kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+erosion = cv2.erode(binary, kernel, iterations=1)
+```
+
+### 膨脹 (Dilation)
+擴大白色區域，填補小黑洞
+
+```python
+dilation = cv2.dilate(binary, kernel, iterations=1)
+```
+
+## 複合操作
+
+| 操作 | 公式 | 效果 |
+|------|------|------|
+| **開運算** | 先侵蝕後膨脹 | 去除小白點、平滑邊緣 |
+| **閉運算** | 先膨脹後侵蝕 | 填補小黑洞、連接斷裂 |
+| **梯度** | 膨脹 - 侵蝕 | 取得物體邊緣 |
+| **頂帽** | 原圖 - 開運算 | 提取亮小物體 |
+| **黑帽** | 閉運算 - 原圖 | 提取暗小物體 |
+
+```python
+# 開運算：去除雜點
+opening = cv2.morphologyEx(binary, cv2.MORPH_OPEN, kernel)
+
+# 閉運算：填補空洞
+closing = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, kernel)
+
+# 形態學梯度：邊緣
+gradient = cv2.morphologyEx(binary, cv2.MORPH_GRADIENT, kernel)
+```
+
+## 核心形狀
+
+```python
+# 矩形核心
+rect = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+
+# 橢圓核心（更平滑）
+ellipse = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (5, 5))
+
+# 十字核心
+cross = cv2.getStructuringElement(cv2.MORPH_CROSS, (5, 5))
+```
+
+### 實際應用
+
+- **文字識別前處理**：去除雜點、連接斷裂筆畫
+- **細胞計數**：分離相連細胞
+- **車牌定位**：連接車牌上的字元區域
+- **指紋增強**：連接斷裂的指紋線
+
+> **提示**：形態學操作通常在二值化影像上進行！
+''',
             'params': [
                 {'name': 'operation', 'label': '操作類型', 'type': 'select',
                  'options': [
@@ -286,7 +1078,76 @@ def get_all_effects():
         'gradient_sobel': {
             'name': 'Sobel 梯度',
             'category': '梯度',
-            'description': 'Sobel 運算子計算影像的一階導數，用於邊緣檢測。可分別計算 X 方向(垂直邊緣)和 Y 方向(水平邊緣)的梯度。',
+            'description': '''計算影像的一階導數（梯度），用於邊緣檢測和特徵提取。
+
+## Sobel 運算子
+
+使用 3×3 的卷積核心計算梯度：
+
+```
+X 方向（偵測垂直邊緣）：    Y 方向（偵測水平邊緣）：
+┌────┬────┬────┐          ┌────┬────┬────┐
+│ -1 │  0 │ +1 │          │ -1 │ -2 │ -1 │
+├────┼────┼────┤          ├────┼────┼────┤
+│ -2 │  0 │ +2 │          │  0 │  0 │  0 │
+├────┼────┼────┤          ├────┼────┼────┤
+│ -1 │  0 │ +1 │          │ +1 │ +2 │ +1 │
+└────┴────┴────┘          └────┴────┴────┘
+```
+
+### 程式碼
+
+```python
+import cv2
+import numpy as np
+
+gray = cv2.imread('image.jpg', cv2.IMREAD_GRAYSCALE)
+
+# 計算 X 方向梯度（垂直邊緣）
+sobelx = cv2.Sobel(gray, cv2.CV_64F, 1, 0, ksize=3)
+
+# 計算 Y 方向梯度（水平邊緣）
+sobely = cv2.Sobel(gray, cv2.CV_64F, 0, 1, ksize=3)
+
+# 計算梯度大小
+magnitude = np.sqrt(sobelx**2 + sobely**2)
+
+# 轉換成 uint8
+result = cv2.convertScaleAbs(magnitude)
+```
+
+### 梯度方向
+
+```python
+# 計算梯度方向（弧度）
+angle = np.arctan2(sobely, sobelx)
+```
+
+### 核心大小的影響
+
+| ksize | 效果 | 說明 |
+|-------|------|------|
+| 1 | 最銳利 | 3×1 或 1×3 核心 |
+| 3 | 標準 | 最常用 |
+| 5, 7 | 較平滑 | 對雜訊較不敏感 |
+
+### 與 Canny 的關係
+
+Canny 邊緣檢測內部使用 Sobel 計算梯度：
+
+```
+Canny = 高斯模糊 + Sobel梯度 + 非極大值抑制 + 雙閾值
+```
+
+### 實際應用
+
+- 邊緣方向分析
+- 影像銳化（Unsharp Masking）
+- 光流計算的基礎
+- 作為 Canny 的預備步驟
+
+> **提示**：Sobel 計算結果可能超過 0-255，記得用 `cv2.CV_64F` 並轉換！
+''',
             'params': [
                 {'name': 'direction', 'label': '梯度方向', 'type': 'select',
                  'options': [
@@ -321,7 +1182,74 @@ def get_all_effects():
         'canny': {
             'name': 'Canny 邊緣檢測',
             'category': '邊緣檢測',
-            'description': 'Canny 是最常用的邊緣檢測演算法。步驟：高斯濾波→計算梯度→非極大值抑制→雙閾值檢測→邊緣連接。建議高/低閾值比為 2:1 或 3:1。',
+            'description': '''業界最常用的邊緣檢測演算法，由 John Canny 於 1986 年提出。
+
+## 演算法步驟
+
+```
+原始影像 → 高斯濾波 → 計算梯度 → 非極大值抑制 → 雙閾值檢測 → 邊緣
+```
+
+### 1. 高斯濾波
+去除雜訊，避免誤判
+
+### 2. 計算梯度
+使用 Sobel 運算子計算 X、Y 方向梯度
+
+### 3. 非極大值抑制
+只保留梯度方向上的局部最大值，讓邊緣變細
+
+### 4. 雙閾值檢測
+- **強邊緣**：梯度 > 高閾值 → 確定是邊緣
+- **弱邊緣**：低閾值 < 梯度 < 高閾值 → 待定
+- **非邊緣**：梯度 < 低閾值 → 捨棄
+
+### 5. 邊緣連接
+弱邊緣如果與強邊緣相連，就保留；否則捨棄
+
+### 程式碼
+
+```python
+import cv2
+
+img = cv2.imread('image.jpg')
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# 先做高斯模糊（建議）
+blur = cv2.GaussianBlur(gray, (5, 5), 0)
+
+# Canny 邊緣檢測
+# threshold1: 低閾值
+# threshold2: 高閾值
+edges = cv2.Canny(blur, 50, 150)
+```
+
+### 閾值設定建議
+
+| 比例 | 適用場景 |
+|------|----------|
+| 2:1 (如 50:100) | 一般場景 |
+| 3:1 (如 50:150) | 較多細節 |
+
+### 自動閾值
+
+```python
+# 使用中位數計算閾值
+median = np.median(gray)
+lower = int(max(0, 0.7 * median))
+upper = int(min(255, 1.3 * median))
+edges = cv2.Canny(blur, lower, upper)
+```
+
+### 實際應用
+
+- 物體輪廓提取
+- 車道線偵測
+- 文件邊緣檢測（自動裁切）
+- 作為輪廓檢測的前置處理
+
+> **提示**：Canny 對雜訊敏感，務必先做模糊處理！
+''',
             'params': [
                 {'name': 'threshold1', 'label': '低閾值', 'type': 'slider',
                  'min': 0, 'max': 200, 'step': 10, 'default': 50},
@@ -352,7 +1280,81 @@ def get_all_effects():
         'contours': {
             'name': '影像輪廓',
             'category': '輪廓',
-            'description': '尋找並繪製影像中的輪廓。可提取面積、周長、外接矩形、最小外接圓、凸包等特徵。常用於物件偵測和計數。',
+            'description': '''尋找並繪製影像中物體的邊界，是物件檢測的核心技術。
+
+## 基本流程
+
+```
+原始影像 → 灰階 → 二值化 → 尋找輪廓 → 繪製/分析
+```
+
+### 程式碼
+
+```python
+import cv2
+
+img = cv2.imread('image.jpg')
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+_, binary = cv2.threshold(gray, 127, 255, cv2.THRESH_BINARY)
+
+# 尋找輪廓
+contours, hierarchy = cv2.findContours(
+    binary,
+    cv2.RETR_EXTERNAL,     # 只找外輪廓
+    cv2.CHAIN_APPROX_SIMPLE # 壓縮輪廓點
+)
+
+# 繪製所有輪廓（-1 表示全部）
+cv2.drawContours(img, contours, -1, (0, 255, 0), 2)
+```
+
+## 檢索模式
+
+| 模式 | 說明 |
+|------|------|
+| `RETR_EXTERNAL` | 只找最外層輪廓 |
+| `RETR_LIST` | 找所有輪廓（無階層） |
+| `RETR_TREE` | 找所有輪廓（有階層關係） |
+
+## 輪廓特徵
+
+```python
+for cnt in contours:
+    # 面積
+    area = cv2.contourArea(cnt)
+
+    # 周長
+    perimeter = cv2.arcLength(cnt, True)
+
+    # 外接矩形
+    x, y, w, h = cv2.boundingRect(cnt)
+
+    # 最小外接矩形（可旋轉）
+    rect = cv2.minAreaRect(cnt)
+
+    # 最小外接圓
+    (cx, cy), radius = cv2.minEnclosingCircle(cnt)
+
+    # 凸包
+    hull = cv2.convexHull(cnt)
+
+    # 輪廓近似（多邊形）
+    epsilon = 0.02 * perimeter
+    approx = cv2.approxPolyDP(cnt, epsilon, True)
+    # len(approx) == 3: 三角形
+    # len(approx) == 4: 矩形
+    # len(approx) > 4: 圓形
+```
+
+### 實際應用
+
+- **物件計數**：計算細胞、硬幣數量
+- **形狀辨識**：根據頂點數判斷形狀
+- **手勢識別**：分析手部輪廓
+- **文件掃描**：找出紙張四個角落
+
+> **提示**：使用 `cv2.contourArea()` 過濾太小的輪廓可以去除雜訊！
+''',
             'params': [
                 {'name': 'mode', 'label': '檢索模式', 'type': 'select',
                  'options': [
@@ -376,7 +1378,72 @@ def get_all_effects():
         'histogram': {
             'name': '長條圖處理',
             'category': '長條圖',
-            'description': '直方圖均衡化可增強對比度。CLAHE (對比度受限自適應直方圖均衡化) 可避免過度增強，適合局部對比度調整。',
+            'description': '''透過直方圖均衡化增強影像對比度，讓暗部和亮部細節更清晰。
+
+## 直方圖均衡化
+
+將像素值分布「拉開」，讓整個範圍（0-255）都被使用：
+
+```python
+import cv2
+
+img = cv2.imread('dark_photo.jpg')
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# 直方圖均衡化
+equalized = cv2.equalizeHist(gray)
+```
+
+### 彩色影像處理
+
+不能直接對 BGR 做均衡化（會變色），要轉 YCrCb 或 LAB：
+
+```python
+# 轉換到 YCrCb
+ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+
+# 只對 Y（亮度）通道做均衡化
+ycrcb[:,:,0] = cv2.equalizeHist(ycrcb[:,:,0])
+
+# 轉回 BGR
+result = cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR)
+```
+
+## CLAHE 自適應均衡化
+
+**C**ontrast **L**imited **A**daptive **H**istogram **E**qualization
+
+普通均衡化可能過度增強，CLAHE 會：
+1. 將影像分成小區塊（tiles）
+2. 對每個區塊分別做均衡化
+3. 限制對比度（clipLimit）避免過度放大
+
+```python
+# 建立 CLAHE 物件
+clahe = cv2.createCLAHE(
+    clipLimit=2.0,    # 對比度限制
+    tileGridSize=(8, 8)  # 區塊大小
+)
+
+# 套用 CLAHE
+result = clahe.apply(gray)
+```
+
+### 參數說明
+
+| 參數 | 說明 | 建議值 |
+|------|------|--------|
+| clipLimit | 對比度限制 | 2.0-4.0 |
+| tileGridSize | 區塊大小 | (8,8) |
+
+### 實際應用
+
+- **醫學影像**：增強 X 光、CT 的細節
+- **夜視影像**：提高低光照影像可見度
+- **文件掃描**：增強褪色文件的對比度
+
+> **提示**：CLAHE 比普通均衡化更自然，不會產生過度飽和的感覺！
+''',
             'params': [
                 {'name': 'method', 'label': '處理方法', 'type': 'select',
                  'options': [
@@ -394,7 +1461,73 @@ def get_all_effects():
         'fourier': {
             'name': '傅立葉轉換',
             'category': '頻域',
-            'description': '將影像從空間域轉換到頻率域。低頻(中心)代表平緩變化，高頻(邊緣)代表快速變化。可用於濾波、壓縮、分析。',
+            'description': '''將影像從空間域轉換到頻率域，揭示影像的頻率組成。
+
+## 核心概念
+
+- **低頻**（頻譜中心）：代表平緩變化的區域，如均勻背景
+- **高頻**（頻譜邊緣）：代表快速變化的區域，如邊緣、細節
+
+### 程式碼
+
+```python
+import cv2
+import numpy as np
+
+gray = cv2.imread('image.jpg', cv2.IMREAD_GRAYSCALE)
+
+# 傅立葉轉換
+f = np.fft.fft2(gray)
+fshift = np.fft.fftshift(f)  # 將低頻移到中心
+
+# 計算頻譜（取對數增強可視性）
+magnitude = 20 * np.log(np.abs(fshift) + 1)
+```
+
+## 頻域濾波
+
+### 低通濾波（保留低頻 → 模糊）
+
+```python
+rows, cols = gray.shape
+crow, ccol = rows//2, cols//2
+radius = 30
+
+# 建立遮罩：中心圓形區域
+mask = np.zeros((rows, cols), np.uint8)
+cv2.circle(mask, (ccol, crow), radius, 1, -1)
+
+# 濾波
+fshift_filtered = fshift * mask
+f_ishift = np.fft.ifftshift(fshift_filtered)
+result = np.abs(np.fft.ifft2(f_ishift))
+```
+
+### 高通濾波（保留高頻 → 邊緣）
+
+```python
+# 反轉遮罩
+mask = np.ones((rows, cols), np.uint8)
+cv2.circle(mask, (ccol, crow), radius, 0, -1)
+```
+
+## 頻譜的意義
+
+```
+頻譜圖中心 = 影像平均亮度
+頻譜圖十字 = 水平/垂直線條
+頻譜圖對角線 = 斜向紋理
+```
+
+### 實際應用
+
+- **去除週期性雜訊**：在頻譜中找出異常亮點並遮蔽
+- **影像壓縮**：JPEG 使用離散餘弦轉換（DCT）
+- **紋理分析**：分析布料、木紋等週期性圖案
+- **濾波器設計**：設計理想的低通/高通/帶通濾波器
+
+> **提示**：傅立葉轉換是訊號處理的基礎，理解它有助於深入學習影像處理！
+''',
             'params': [
                 {'name': 'display', 'label': '顯示類型', 'type': 'select',
                  'options': [
@@ -458,7 +1591,92 @@ def get_all_effects():
         'face_detection': {
             'name': '人臉識別',
             'category': '識別',
-            'description': '使用 Haar Cascade 分類器偵測人臉。這是傳統機器學習方法，速度快但精度不如深度學習。可調整縮放比例和鄰居數提高準確度。',
+            'description': '''使用 Haar Cascade 分類器偵測人臉，這是 OpenCV 內建的傳統機器學習方法。
+
+## Haar Cascade 原理
+
+使用大量「類 Haar 特徵」進行快速篩選：
+
+```
+眼睛特徵：上方較暗、下方較亮
+┌─────┬─────┐
+│ 黑  │ 黑  │  ← 眼眉
+├─────┼─────┤
+│ 白  │ 白  │  ← 眼下皮膚
+└─────┴─────┘
+```
+
+### 程式碼
+
+```python
+import cv2
+
+# 載入預訓練的分類器
+face_cascade = cv2.CascadeClassifier(
+    cv2.data.haarcascades + 'haarcascade_frontalface_default.xml'
+)
+
+img = cv2.imread('group_photo.jpg')
+gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# 偵測人臉
+faces = face_cascade.detectMultiScale(
+    gray,
+    scaleFactor=1.1,   # 縮放比例
+    minNeighbors=4,    # 最小鄰居數
+    minSize=(30, 30)   # 最小人臉尺寸
+)
+
+# 繪製矩形框
+for (x, y, w, h) in faces:
+    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+```
+
+### 參數說明
+
+| 參數 | 說明 | 調整建議 |
+|------|------|----------|
+| scaleFactor | 每次縮小的比例 | 1.1-1.3，越小越精確但越慢 |
+| minNeighbors | 確認偵測的鄰居數 | 3-6，越大誤報越少 |
+| minSize | 最小人臉尺寸 | 視影像大小調整 |
+
+### OpenCV 內建的其他分類器
+
+```python
+# 眼睛
+eye_cascade = cv2.CascadeClassifier(
+    cv2.data.haarcascades + 'haarcascade_eye.xml'
+)
+
+# 微笑
+smile_cascade = cv2.CascadeClassifier(
+    cv2.data.haarcascades + 'haarcascade_smile.xml'
+)
+
+# 貓臉
+cat_cascade = cv2.CascadeClassifier(
+    cv2.data.haarcascades + 'haarcascade_frontalcatface.xml'
+)
+```
+
+### 與深度學習比較
+
+| 特性 | Haar Cascade | 深度學習 (DNN) |
+|------|--------------|----------------|
+| 速度 | ⚡ 非常快 | 較慢 |
+| 精確度 | 中 | **高** |
+| 角度容忍 | 差（需正面） | 好 |
+| 遮擋處理 | 差 | 較好 |
+
+### 實際應用
+
+- 相機自動對焦
+- 影片中的人臉追蹤
+- 簡單的人數統計
+- 配合其他特徵做表情識別
+
+> **提示**：Haar Cascade 對正面臉效果最好，側臉可能漏偵測！
+''',
             'params': [
                 {'name': 'scale_factor', 'label': '縮放比例', 'type': 'slider',
                  'min': 1.05, 'max': 1.5, 'step': 0.05, 'default': 1.1},

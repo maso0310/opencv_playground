@@ -330,6 +330,98 @@
         font-family: monospace;
         font-size: 0.85rem;
     }
+
+    /* ===== Markdown 內容樣式 ===== */
+    .markdown-content {
+        line-height: 1.8;
+    }
+    .markdown-content h2 {
+        color: #0dcaf0;
+        border-bottom: 2px solid #0dcaf0;
+        padding-bottom: 8px;
+        margin-top: 25px;
+        margin-bottom: 15px;
+        font-size: 1.3rem;
+    }
+    .markdown-content h3 {
+        color: #495057;
+        margin-top: 20px;
+        margin-bottom: 10px;
+        font-size: 1.1rem;
+    }
+    .markdown-content p {
+        margin-bottom: 12px;
+    }
+    .markdown-content ul, .markdown-content ol {
+        margin-bottom: 15px;
+        padding-left: 25px;
+    }
+    .markdown-content li {
+        margin-bottom: 5px;
+    }
+    .markdown-content code {
+        background: #e9ecef;
+        padding: 2px 6px;
+        border-radius: 4px;
+        font-family: 'Consolas', 'Monaco', monospace;
+        font-size: 0.9em;
+        color: #d63384;
+    }
+    .markdown-content pre {
+        background: #2d3748;
+        color: #e2e8f0;
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 15px 0;
+    }
+    .markdown-content pre code {
+        background: none;
+        color: inherit;
+        padding: 0;
+    }
+    .markdown-content blockquote {
+        border-left: 4px solid #0dcaf0;
+        padding-left: 15px;
+        margin: 15px 0;
+        color: #6c757d;
+        font-style: italic;
+    }
+    .markdown-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: 8px;
+        margin: 15px 0;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    .markdown-content table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 15px 0;
+    }
+    .markdown-content th, .markdown-content td {
+        border: 1px solid #dee2e6;
+        padding: 10px;
+        text-align: left;
+    }
+    .markdown-content th {
+        background: #f8f9fa;
+        font-weight: bold;
+    }
+    .markdown-content .tip-box {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+    }
+    .markdown-content .warning-box {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 8px;
+        padding: 15px;
+        margin: 15px 0;
+    }
 </style>
 {% endblock %}
 
@@ -601,15 +693,15 @@
 
 <!-- OpenCV 說明 Modal -->
 <div class="modal fade" id="descModal" tabindex="-1" aria-labelledby="descModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
         <div class="modal-content">
             <div class="modal-header bg-info text-white">
                 <h5 class="modal-title" id="descModalLabel">效果說明</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
+            <div class="modal-body markdown-content">
                 <h4 id="modalDescTitle">效果名稱</h4>
-                <div id="modalDescText" class="mt-3" style="white-space: pre-line; line-height: 1.8;"></div>
+                <div id="modalDescText" class="mt-3"></div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
@@ -831,9 +923,9 @@ function selectEffect(effect) {
         descTitle.textContent = effectInfo.name;
         descSummary.textContent = extractSummary(fullDesc);
 
-        // 更新 Modal 內容
+        // 更新 Modal 內容（使用 Markdown 渲染）
         modalDescTitle.textContent = effectInfo.name;
-        modalDescText.textContent = fullDesc;
+        modalDescText.innerHTML = marked.parse(fullDesc);
 
         // 渲染參數控制
         renderParams(effectInfo.params || []);
