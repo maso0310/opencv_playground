@@ -345,20 +345,12 @@ def execute_code():
     def capture_print(*args, **kwargs):
         output_lines.append(' '.join(str(a) for a in args))
 
-    # 建立安全的 builtins (複製並替換 print)
-    import builtins
-    safe_builtins = {k: getattr(builtins, k) for k in dir(builtins) if not k.startswith('_')}
-    safe_builtins['print'] = capture_print
-    # 移除危險函數
-    for dangerous in ['eval', 'exec', 'compile', 'open', 'input', '__import__']:
-        safe_builtins.pop(dangerous, None)
-
-    # 建立執行環境
+    # 建立執行環境 (使用預設 builtins，不做限制)
     exec_globals = {
         'cv2': cv2,
         'np': np,
         'numpy': np,
-        '__builtins__': safe_builtins,
+        'print': capture_print,  # 覆蓋 print 以捕捉輸出
     }
 
     # 加入之前 session 的變數
