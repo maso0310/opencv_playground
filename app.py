@@ -163,14 +163,14 @@ def playground():
 
 # ===== DispatcherMiddleware 設定 =====
 
-def not_found_app(environ, start_response):
-    """處理非 /opencv_playground 路徑的請求"""
-    start_response('404 Not Found', [('Content-Type', 'text/plain; charset=utf-8')])
-    return [b'Not Found - Please visit /opencv_playground/']
-
-app = DispatcherMiddleware(not_found_app, {
-    "/opencv_playground": real_app
-})
+app = DispatcherMiddleware(
+    lambda environ, start_response: (
+        start_response('404 Not Found', [('Content-Type', 'text/plain')]) or [b'Not Found']
+    ),
+    {
+        "/opencv_playground": real_app
+    }
+)
 
 
 # ===== 啟動 =====
