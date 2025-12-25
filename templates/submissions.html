@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>作業繳交區 - OpenCV 教學平台</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #1a1a2e;
+            --bg-secondary: #16213e;
+            --bg-card: #1f2940;
+            --text-primary: #e8e8e8;
+            --text-secondary: #a0a0a0;
+            --accent-green: #4ade80;
+            --accent-blue: #60a5fa;
+            --accent-purple: #a78bfa;
+            --accent-orange: #fb923c;
+            --border-color: #374151;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+            color: var(--text-primary);
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .navbar {
+            background: rgba(26, 26, 46, 0.95) !important;
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .navbar-brand {
+            font-weight: 700;
+            color: var(--accent-green) !important;
+        }
+
+        .nav-link {
+            color: var(--text-primary) !important;
+        }
+
+        .nav-link:hover, .nav-link.active {
+            color: var(--accent-green) !important;
+        }
+
+        .page-header {
+            background: linear-gradient(135deg, rgba(74, 222, 128, 0.1), rgba(96, 165, 250, 0.1));
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-color);
+        }
+
+        .page-header h1 {
+            color: var(--accent-green);
+            margin-bottom: 0.5rem;
+        }
+
+        .group-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .group-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+            border-color: var(--accent-green);
+        }
+
+        .group-header {
+            padding: 1.25rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .group-number {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .group-1 .group-number { color: #ef4444; }
+        .group-2 .group-number { color: #f97316; }
+        .group-3 .group-number { color: #eab308; }
+        .group-4 .group-number { color: #22c55e; }
+        .group-5 .group-number { color: #3b82f6; }
+        .group-6 .group-number { color: #a855f7; }
+
+        .group-vi {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+        }
+
+        .group-body {
+            padding: 1.25rem;
+        }
+
+        .status-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .status-submitted {
+            background: rgba(74, 222, 128, 0.2);
+            color: var(--accent-green);
+        }
+
+        .status-pending {
+            background: rgba(251, 146, 60, 0.2);
+            color: var(--accent-orange);
+        }
+
+        .btn-upload {
+            background: linear-gradient(135deg, var(--accent-green), var(--accent-blue));
+            border: none;
+            color: #000;
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-upload:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 20px rgba(74, 222, 128, 0.3);
+            color: #000;
+        }
+
+        .btn-view {
+            background: rgba(96, 165, 250, 0.2);
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+            font-weight: 600;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+        }
+
+        .btn-view:hover {
+            background: var(--accent-blue);
+            color: #000;
+        }
+
+        /* Upload Modal */
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+        }
+
+        .modal-header {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .modal-footer {
+            border-top: 1px solid var(--border-color);
+        }
+
+        .form-label {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        .form-control, .form-select {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            border-radius: 8px;
+        }
+
+        .form-control:focus, .form-select:focus {
+            background: var(--bg-secondary);
+            border-color: var(--accent-green);
+            color: var(--text-primary);
+            box-shadow: 0 0 0 0.2rem rgba(74, 222, 128, 0.25);
+        }
+
+        .form-control::file-selector-button {
+            background: var(--accent-blue);
+            color: #000;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            margin-right: 1rem;
+        }
+
+        /* File List */
+        .file-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .file-list li {
+            padding: 0.5rem;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .file-list li:last-child {
+            border-bottom: none;
+        }
+
+        .file-icon {
+            color: var(--accent-blue);
+        }
+
+        /* View Modal */
+        .submission-preview {
+            background: var(--bg-secondary);
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .code-preview {
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+            max-height: 400px;
+        }
+
+        .code-preview pre {
+            margin: 0;
+            color: var(--text-primary);
+        }
+
+        /* VI Info Cards */
+        .vi-info-section {
+            background: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .vi-formula {
+            font-family: 'Courier New', monospace;
+            background: var(--bg-secondary);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            display: inline-block;
+            color: var(--accent-green);
+        }
+
+        /* Instructions Section */
+        .instructions-section {
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.1), rgba(96, 165, 250, 0.1));
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .instructions-section h5 {
+            color: var(--accent-purple);
+        }
+
+        .step-list {
+            list-style: none;
+            padding: 0;
+            counter-reset: step-counter;
+        }
+
+        .step-list li {
+            counter-increment: step-counter;
+            padding: 0.5rem 0;
+            padding-left: 2rem;
+            position: relative;
+        }
+
+        .step-list li::before {
+            content: counter(step-counter);
+            position: absolute;
+            left: 0;
+            top: 0.5rem;
+            width: 1.5rem;
+            height: 1.5rem;
+            background: var(--accent-blue);
+            color: #000;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .btn-close {
+            filter: invert(1);
+        }
+
+        /* Tab styling */
+        .nav-tabs {
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.75rem 1.25rem;
+        }
+
+        .nav-tabs .nav-link:hover {
+            border: none;
+            color: var(--text-primary);
+        }
+
+        .nav-tabs .nav-link.active {
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--accent-green);
+            color: var(--accent-green);
+        }
+
+        .alert-info {
+            background: rgba(96, 165, 250, 0.1);
+            border: 1px solid var(--accent-blue);
+            color: var(--accent-blue);
+        }
+    </style>
+</head>
+<body>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg sticky-top">
+        <div class="container">
+            <a class="navbar-brand" href="{{ url_for('index') }}">
+                <i class="fas fa-leaf me-2"></i>OpenCV 教學平台
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto">
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('index') }}">
+                            <i class="fas fa-home me-1"></i>首頁
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('playground') }}">
+                            <i class="fas fa-flask me-1"></i>Playground
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('vi_lab') }}">
+                            <i class="fas fa-seedling me-1"></i>植生指標
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link active" href="{{ url_for('submissions') }}">
+                            <i class="fas fa-upload me-1"></i>作業繳交
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1><i class="fas fa-tasks me-2"></i>作業繳交區</h1>
+            <p class="text-secondary mb-0">各組上傳植生指標分析作業成果</p>
+        </div>
+
+        <!-- Instructions -->
+        <div class="instructions-section">
+            <h5><i class="fas fa-info-circle me-2"></i>繳交說明</h5>
+            <p>請各組依照分配的植生指標完成以下步驟，並上傳相關檔案：</p>
+            <ol class="step-list">
+                <li>通道分離 - 將 RGB 影像拆解為 R、G、B 三個通道</li>
+                <li>正規化 - 計算 r、g、b 正規化數值</li>
+                <li>植生指標計算 - 依據公式計算植生指標值</li>
+                <li>Otsu 閾值計算 - 使用 Otsu 方法找出最佳閾值</li>
+                <li>產生二值化遮罩 - 依據閾值產生黑白遮罩</li>
+                <li>遮罩切圖 - 使用遮罩提取植物區域</li>
+                <li>直方圖輸出 - 產生數值分布直方圖</li>
+            </ol>
+        </div>
+
+        <!-- Group Cards -->
+        <div class="row g-4 mb-4">
+            {% for group_num in range(1, 7) %}
+            {% set vi_types = ['ExG', 'ExGR', 'GLI', 'VARI', 'NGRDI', 'CIVE'] %}
+            {% set vi_type = vi_types[group_num - 1] %}
+            {% set vi_info = vi_indices.get(vi_type, {}) %}
+            <div class="col-md-6 col-lg-4">
+                <div class="group-card group-{{ group_num }}">
+                    <div class="group-header">
+                        <div>
+                            <div class="group-number">第 {{ group_num }} 組</div>
+                            <div class="group-vi">
+                                <strong>{{ vi_info.get('name', vi_type) }}</strong>
+                            </div>
+                        </div>
+                        {% if submissions.get(group_num, {}).get('has_submission') %}
+                        <span class="status-badge status-submitted">
+                            <i class="fas fa-check me-1"></i>已繳交
+                        </span>
+                        {% else %}
+                        <span class="status-badge status-pending">
+                            <i class="fas fa-clock me-1"></i>未繳交
+                        </span>
+                        {% endif %}
+                    </div>
+                    <div class="group-body">
+                        <div class="mb-3">
+                            <small class="text-secondary">公式：</small>
+                            <div class="vi-formula">{{ vi_info.get('formula', 'N/A') }}</div>
+                        </div>
+
+                        {% if submissions.get(group_num, {}).get('has_submission') %}
+                        <div class="mb-3">
+                            <small class="text-secondary">已上傳檔案：</small>
+                            <ul class="file-list">
+                                {% for file in submissions.get(group_num, {}).get('files', []) %}
+                                <li>
+                                    {% if file.endswith('.py') %}
+                                    <i class="fas fa-code file-icon"></i>
+                                    {% else %}
+                                    <i class="fas fa-image file-icon"></i>
+                                    {% endif %}
+                                    <span>{{ file }}</span>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                        {% endif %}
+
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-upload flex-fill"
+                                    onclick="openUploadModal({{ group_num }}, '{{ vi_type }}')">
+                                <i class="fas fa-upload me-1"></i>上傳作業
+                            </button>
+                            {% if submissions.get(group_num, {}).get('has_submission') %}
+                            <button class="btn btn-view"
+                                    onclick="viewSubmission({{ group_num }})">
+                                <i class="fas fa-eye me-1"></i>檢視
+                            </button>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Upload Modal -->
+    <div class="modal fade" id="uploadModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-upload me-2"></i>
+                        <span id="uploadModalTitle">上傳作業</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="uploadForm" enctype="multipart/form-data">
+                        <input type="hidden" id="uploadGroupNum" name="group_num">
+                        <input type="hidden" id="uploadViType" name="vi_type">
+
+                        <div class="alert alert-info">
+                            <i class="fas fa-lightbulb me-2"></i>
+                            請上傳各階段的處理結果圖片與程式碼
+                        </div>
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">原始圖片</label>
+                                <input type="file" class="form-control" name="original" accept="image/*">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">植生指標圖 (VI Map)</label>
+                                <input type="file" class="form-control" name="vi_map" accept="image/*">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">二值化遮罩 (Mask)</label>
+                                <input type="file" class="form-control" name="mask" accept="image/*">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">最終結果 (Segmented)</label>
+                                <input type="file" class="form-control" name="result" accept="image/*">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">直方圖 (Histogram)</label>
+                                <input type="file" class="form-control" name="histogram" accept="image/*">
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">程式碼 (.py)</label>
+                                <input type="file" class="form-control" name="code" accept=".py">
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                    <button type="button" class="btn btn-upload" onclick="submitUpload()">
+                        <i class="fas fa-cloud-upload-alt me-1"></i>確認上傳
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Modal -->
+    <div class="modal fade" id="viewModal" tabindex="-1">
+        <div class="modal-dialog modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">
+                        <i class="fas fa-folder-open me-2"></i>
+                        <span id="viewModalTitle">檢視作業</span>
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Tabs -->
+                    <ul class="nav nav-tabs mb-3" id="viewTabs" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active" data-bs-toggle="tab"
+                                    data-bs-target="#tab-images">
+                                <i class="fas fa-images me-1"></i>圖片
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" data-bs-toggle="tab"
+                                    data-bs-target="#tab-code">
+                                <i class="fas fa-code me-1"></i>程式碼
+                            </button>
+                        </li>
+                    </ul>
+
+                    <div class="tab-content">
+                        <!-- Images Tab -->
+                        <div class="tab-pane fade show active" id="tab-images">
+                            <div class="row g-3" id="imagesContainer">
+                                <!-- Images will be loaded here -->
+                            </div>
+                        </div>
+
+                        <!-- Code Tab -->
+                        <div class="tab-pane fade" id="tab-code">
+                            <div id="codeContainer">
+                                <!-- Code will be loaded here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-core.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+
+    <script>
+        const uploadModal = new bootstrap.Modal(document.getElementById('uploadModal'));
+        const viewModal = new bootstrap.Modal(document.getElementById('viewModal'));
+
+        function openUploadModal(groupNum, viType) {
+            document.getElementById('uploadGroupNum').value = groupNum;
+            document.getElementById('uploadViType').value = viType;
+            document.getElementById('uploadModalTitle').textContent =
+                `第 ${groupNum} 組 - ${viType} 作業上傳`;
+            document.getElementById('uploadForm').reset();
+            uploadModal.show();
+        }
+
+        function submitUpload() {
+            const form = document.getElementById('uploadForm');
+            const formData = new FormData(form);
+
+            // Check if at least one file is selected
+            const files = form.querySelectorAll('input[type="file"]');
+            let hasFile = false;
+            files.forEach(input => {
+                if (input.files.length > 0) hasFile = true;
+            });
+
+            if (!hasFile) {
+                alert('請至少選擇一個檔案上傳');
+                return;
+            }
+
+            fetch('{{ url_for("submit_assignment") }}', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    uploadModal.hide();
+                    location.reload();
+                } else {
+                    alert('上傳失敗：' + (data.error || '未知錯誤'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('上傳失敗，請稍後再試');
+            });
+        }
+
+        function viewSubmission(groupNum) {
+            document.getElementById('viewModalTitle').textContent =
+                `第 ${groupNum} 組 - 作業內容`;
+
+            fetch(`{{ url_for("get_submission", group_num=0) }}`.replace('0', groupNum))
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    alert(data.error);
+                    return;
+                }
+
+                renderSubmission(data);
+                viewModal.show();
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('載入失敗，請稍後再試');
+            });
+        }
+
+        function renderSubmission(data) {
+            const imagesContainer = document.getElementById('imagesContainer');
+            const codeContainer = document.getElementById('codeContainer');
+
+            imagesContainer.innerHTML = '';
+            codeContainer.innerHTML = '';
+
+            const fileLabels = {
+                'original': '原始圖片',
+                'vi_map': '植生指標圖',
+                'mask': '二值化遮罩',
+                'result': '最終結果',
+                'histogram': '直方圖'
+            };
+
+            for (const [filename, fileData] of Object.entries(data.files)) {
+                if (fileData.type === 'image') {
+                    // Find label
+                    let label = filename;
+                    for (const [key, value] of Object.entries(fileLabels)) {
+                        if (filename.includes(key)) {
+                            label = value;
+                            break;
+                        }
+                    }
+
+                    imagesContainer.innerHTML += `
+                        <div class="col-md-6">
+                            <div class="submission-preview">
+                                <h6 class="mb-2">${label}</h6>
+                                <img src="${fileData.url}" class="preview-image" alt="${filename}">
+                            </div>
+                        </div>
+                    `;
+                } else if (fileData.type === 'code') {
+                    codeContainer.innerHTML = `
+                        <div class="code-preview">
+                            <pre><code class="language-python">${escapeHtml(fileData.content)}</code></pre>
+                        </div>
+                    `;
+                    // Re-highlight
+                    Prism.highlightAll();
+                }
+            }
+
+            if (imagesContainer.innerHTML === '') {
+                imagesContainer.innerHTML = '<p class="text-secondary">尚未上傳圖片</p>';
+            }
+
+            if (codeContainer.innerHTML === '') {
+                codeContainer.innerHTML = '<p class="text-secondary">尚未上傳程式碼</p>';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+    </script>
+</body>
+</html>
