@@ -402,10 +402,19 @@
 
             <!-- 結果區域 -->
             <div id="resultSection" style="display: none;">
-                <!-- 說明區塊 -->
-                <div class="description-box" id="descriptionBox">
-                    <h5 id="descTitle">原始影像</h5>
-                    <p id="descText">顯示原始上傳的影像，不做任何處理。</p>
+                <!-- 說明區塊（簡化版） -->
+                <div class="description-box d-flex justify-content-between align-items-center" id="descriptionBox">
+                    <div>
+                        <h5 class="mb-1" id="descTitle">原始影像</h5>
+                        <p class="mb-0 small opacity-75" id="descSummary">顯示原始上傳的影像</p>
+                    </div>
+                    <button class="btn btn-light btn-sm" id="showDescModalBtn" data-bs-toggle="modal" data-bs-target="#descModal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-1">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                        </svg>
+                        詳細說明
+                    </button>
                 </div>
 
                 <div class="row">
@@ -444,7 +453,7 @@
                                         <div class="color-preview" id="colorPreview"></div>
                                         <div class="pixel-values">
                                             <div><small>座標: (<span id="pixelX">-</span>, <span id="pixelY">-</span>)</small></div>
-                                            <div><small>RGB: (<span id="pixelR">-</span>, <span id="pixelG">-</span>, <span id="pixelB">-</span>)</small></div>
+                                            <div id="pixelValuesDisplay"><small>RGB: (-, -, -)</small></div>
                                             <div id="extraChannelInfo"><small></small></div>
                                         </div>
                                     </div>
@@ -490,11 +499,19 @@
 
             <!-- ===== NumPy 內容區 ===== -->
             <div id="numpyContent" style="display: none;">
-                <!-- 說明區塊 -->
-                <div class="numpy-description-box" id="numpyDescriptionBox">
-                    <h5 id="numpyDescTitle">NumPy 陣列運算</h5>
-                    <p id="numpyDescText" style="white-space: pre-line;">選擇左側的操作來開始學習 NumPy 的各種功能。
-NumPy 是 Python 科學計算的基礎套件，提供高效的多維陣列操作。</p>
+                <!-- 說明區塊（簡化版） -->
+                <div class="numpy-description-box d-flex justify-content-between align-items-center" id="numpyDescriptionBox">
+                    <div>
+                        <h5 class="mb-1" id="numpyDescTitle">NumPy 陣列運算</h5>
+                        <p class="mb-0 small opacity-75" id="numpyDescSummary">選擇左側的操作來開始學習</p>
+                    </div>
+                    <button class="btn btn-light btn-sm" id="showNumpyDescModalBtn" data-bs-toggle="modal" data-bs-target="#numpyDescModal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-1">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                        </svg>
+                        詳細說明
+                    </button>
                 </div>
 
                 <div class="row">
@@ -581,6 +598,44 @@ NumPy 是 Python 科學計算的基礎套件，提供高效的多維陣列操作
         </div>
     </div>
 </div>
+
+<!-- OpenCV 說明 Modal -->
+<div class="modal fade" id="descModal" tabindex="-1" aria-labelledby="descModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="descModalLabel">效果說明</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h4 id="modalDescTitle">效果名稱</h4>
+                <div id="modalDescText" class="mt-3" style="white-space: pre-line; line-height: 1.8;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- NumPy 說明 Modal -->
+<div class="modal fade" id="numpyDescModal" tabindex="-1" aria-labelledby="numpyDescModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="numpyDescModalLabel">操作說明</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h4 id="numpyModalDescTitle">操作名稱</h4>
+                <div id="numpyModalDescText" class="mt-3" style="white-space: pre-line; line-height: 1.8;"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block extra_scripts %}
@@ -608,7 +663,7 @@ const resultSection = document.getElementById('resultSection');
 const originalImage = document.getElementById('originalImage');
 const resultImage = document.getElementById('resultImage');
 const descTitle = document.getElementById('descTitle');
-const descText = document.getElementById('descText');
+const descSummary = document.getElementById('descSummary');
 const codeBlock = document.getElementById('codeBlock');
 const loadingSpinner = document.getElementById('loadingSpinner');
 const paramsContainer = document.getElementById('paramsContainer');
@@ -616,6 +671,10 @@ const opencvBtns = document.querySelectorAll('.opencv-btn');
 const copyCodeBtn = document.getElementById('copyCodeBtn');
 const resetBtn = document.getElementById('resetBtn');
 const applyBtn = document.getElementById('applyBtn');
+
+// ===== DOM 元素 - OpenCV Modal =====
+const modalDescTitle = document.getElementById('modalDescTitle');
+const modalDescText = document.getElementById('modalDescText');
 
 // ===== DOM 元素 - 模式切換 =====
 const opencvTab = document.getElementById('opencvTab');
@@ -628,7 +687,7 @@ const numpySidebar = document.getElementById('numpySidebar');
 // ===== DOM 元素 - NumPy =====
 const numpyBtns = document.querySelectorAll('.numpy-btn');
 const numpyDescTitle = document.getElementById('numpyDescTitle');
-const numpyDescText = document.getElementById('numpyDescText');
+const numpyDescSummary = document.getElementById('numpyDescSummary');
 const numpyCodeBlock = document.getElementById('numpyCodeBlock');
 const numpyParamsContainer = document.getElementById('numpyParamsContainer');
 const numpyApplyBtn = document.getElementById('numpyApplyBtn');
@@ -643,6 +702,10 @@ const numpyUploadZone = document.getElementById('numpyUploadZone');
 const numpyFileInput = document.getElementById('numpyFileInput');
 const inputArrayContainer = document.getElementById('inputArrayContainer');
 const outputArrayContainer = document.getElementById('outputArrayContainer');
+
+// ===== DOM 元素 - NumPy Modal =====
+const numpyModalDescTitle = document.getElementById('numpyModalDescTitle');
+const numpyModalDescText = document.getElementById('numpyModalDescText');
 
 // ===== 模式切換 =====
 function switchMode(mode) {
@@ -738,20 +801,39 @@ async function uploadFile(file) {
     }
 }
 
+// 從完整說明中提取簡短摘要（取第一句或前50字）
+function extractSummary(text) {
+    if (!text) return '';
+    // 取第一行或第一句
+    const firstLine = text.split('\n')[0];
+    const firstSentence = firstLine.split('。')[0];
+    if (firstSentence.length <= 50) {
+        return firstSentence + (firstLine.includes('。') ? '' : '');
+    }
+    return firstSentence.substring(0, 47) + '...';
+}
+
 // 選擇效果（更新UI和參數）
 function selectEffect(effect) {
     currentEffect = effect;
 
     // 更新按鈕狀態
-    effectBtns.forEach(btn => {
+    opencvBtns.forEach(btn => {
         btn.classList.toggle('active', btn.dataset.effect === effect);
     });
 
     // 更新說明
     const effectInfo = effectsData[effect];
     if (effectInfo) {
+        const fullDesc = effectInfo.description || '無說明';
+
+        // 更新簡化說明區
         descTitle.textContent = effectInfo.name;
-        descText.textContent = effectInfo.description || '無說明';
+        descSummary.textContent = extractSummary(fullDesc);
+
+        // 更新 Modal 內容
+        modalDescTitle.textContent = effectInfo.name;
+        modalDescText.textContent = fullDesc;
 
         // 渲染參數控制
         renderParams(effectInfo.params || []);
@@ -934,7 +1016,7 @@ resetBtn.addEventListener('click', () => {
     resultSection.style.display = 'none';
     fileInput.value = '';
 
-    effectBtns.forEach(btn => btn.classList.remove('active'));
+    opencvBtns.forEach(btn => btn.classList.remove('active'));
 });
 
 // ===== 像素顏色顯示器 =====
@@ -944,9 +1026,7 @@ const pixelInfoBox = document.getElementById('pixelInfoBox');
 const colorPreview = document.getElementById('colorPreview');
 const pixelX = document.getElementById('pixelX');
 const pixelY = document.getElementById('pixelY');
-const pixelR = document.getElementById('pixelR');
-const pixelG = document.getElementById('pixelG');
-const pixelB = document.getElementById('pixelB');
+const pixelValuesDisplay = document.getElementById('pixelValuesDisplay');
 const extraChannelInfo = document.getElementById('extraChannelInfo');
 
 // 當結果圖片載入時，繪製到 canvas
@@ -956,6 +1036,105 @@ resultImage.addEventListener('load', () => {
     pixelCtx.drawImage(resultImage, 0, 0);
     pixelInfoBox.style.display = 'block';
 });
+
+// 取得目前色彩空間參數
+function getCurrentColorSpace() {
+    if (currentEffect === 'color_space') {
+        return currentParams.space || 'hsv_h';
+    }
+    return null;
+}
+
+// 根據色彩空間格式化像素值顯示
+function formatPixelValues(r, g, b) {
+    const space = getCurrentColorSpace();
+
+    // 預設顯示 RGB
+    let mainLabel = 'RGB';
+    let mainValues = `(${r}, ${g}, ${b})`;
+    let extraInfo = '';
+
+    if (currentEffect === 'gray' || space === 'gray') {
+        // 灰階
+        mainLabel = '灰階值';
+        mainValues = `${r}`;
+    } else if (space && space.startsWith('hsv')) {
+        // HSV 系列
+        mainLabel = space === 'hsv' ? 'HSV' : space.toUpperCase().replace('_', ' ');
+        if (space === 'hsv') {
+            mainValues = `(${r}, ${g}, ${b})`;
+            extraInfo = 'H: 色相, S: 飽和度, V: 明度';
+        } else if (space === 'hsv_h') {
+            mainLabel = 'H (色相)';
+            mainValues = `${r}`;
+            extraInfo = '範圍: 0-180 (OpenCV)';
+        } else if (space === 'hsv_s') {
+            mainLabel = 'S (飽和度)';
+            mainValues = `${r}`;
+            extraInfo = '範圍: 0-255';
+        } else if (space === 'hsv_v') {
+            mainLabel = 'V (明度)';
+            mainValues = `${r}`;
+            extraInfo = '範圍: 0-255';
+        }
+    } else if (space && space.startsWith('hls')) {
+        // HLS 系列
+        mainLabel = space === 'hls' ? 'HLS' : space.toUpperCase().replace('_', ' ');
+        if (space === 'hls') {
+            mainValues = `(${r}, ${g}, ${b})`;
+            extraInfo = 'H: 色相, L: 亮度, S: 飽和度';
+        } else if (space === 'hls_h') {
+            mainLabel = 'H (色相)';
+            mainValues = `${r}`;
+        } else if (space === 'hls_l') {
+            mainLabel = 'L (亮度)';
+            mainValues = `${r}`;
+        } else if (space === 'hls_s') {
+            mainLabel = 'S (飽和度)';
+            mainValues = `${r}`;
+        }
+    } else if (space && space.startsWith('lab')) {
+        // LAB 系列
+        mainLabel = space === 'lab' ? 'LAB' : space.toUpperCase().replace('_', ' ');
+        if (space === 'lab') {
+            mainValues = `(${r}, ${g}, ${b})`;
+            extraInfo = 'L: 亮度, A: 綠紅, B: 藍黃';
+        } else if (space === 'lab_l') {
+            mainLabel = 'L (亮度)';
+            mainValues = `${r}`;
+        } else if (space === 'lab_a') {
+            mainLabel = 'A (綠-紅)';
+            mainValues = `${r}`;
+            extraInfo = '128=中性, <128=綠, >128=紅';
+        } else if (space === 'lab_b') {
+            mainLabel = 'B (藍-黃)';
+            mainValues = `${r}`;
+            extraInfo = '128=中性, <128=藍, >128=黃';
+        }
+    } else if (space && space.startsWith('ycrcb')) {
+        // YCrCb 系列
+        mainLabel = space === 'ycrcb' ? 'YCrCb' : space.toUpperCase().replace('_', ' ');
+        if (space === 'ycrcb') {
+            mainValues = `(${r}, ${g}, ${b})`;
+            extraInfo = 'Y: 亮度, Cr: 紅色差, Cb: 藍色差';
+        } else if (space === 'ycrcb_y') {
+            mainLabel = 'Y (亮度)';
+            mainValues = `${r}`;
+        } else if (space === 'ycrcb_cr') {
+            mainLabel = 'Cr (紅色差)';
+            mainValues = `${r}`;
+        } else if (space === 'ycrcb_cb') {
+            mainLabel = 'Cb (藍色差)';
+            mainValues = `${r}`;
+        }
+    } else if (space === 'rgb') {
+        mainLabel = 'RGB';
+        mainValues = `(${r}, ${g}, ${b})`;
+        extraInfo = '已從 BGR 轉換為 RGB';
+    }
+
+    return { mainLabel, mainValues, extraInfo };
+}
 
 // 滑鼠移動時讀取像素顏色
 resultImage.addEventListener('mousemove', (e) => {
@@ -970,48 +1149,20 @@ resultImage.addEventListener('mousemove', (e) => {
         const pixel = pixelCtx.getImageData(x, y, 1, 1).data;
         const r = pixel[0], g = pixel[1], b = pixel[2];
 
-        // 更新顯示
+        // 更新座標
         pixelX.textContent = x;
         pixelY.textContent = y;
-        pixelR.textContent = r;
-        pixelG.textContent = g;
-        pixelB.textContent = b;
+
+        // 取得格式化的像素值
+        const { mainLabel, mainValues, extraInfo } = formatPixelValues(r, g, b);
+
+        // 更新顏色預覽
         colorPreview.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
 
-        // 根據目前效果顯示額外資訊
-        let extraInfo = '';
-        if (currentEffect.startsWith('hsv') || currentEffect.startsWith('hls')) {
-            // 計算 HSV/HLS 值
-            const max = Math.max(r, g, b) / 255;
-            const min = Math.min(r, g, b) / 255;
-            const d = max - min;
-            let h = 0, s = 0, v = max;
-            if (d > 0) {
-                s = max > 0 ? d / max : 0;
-                if (max === r / 255) h = ((g - b) / 255 / d) % 6;
-                else if (max === g / 255) h = (b - r) / 255 / d + 2;
-                else h = (r - g) / 255 / d + 4;
-                h = Math.round(h * 30);  // OpenCV 用 0-180
-                if (h < 0) h += 180;
-            }
-            s = Math.round(s * 255);
-            v = Math.round(v * 255);
-            extraInfo = `HSV: (${h}, ${s}, ${v})`;
-        } else if (currentEffect.startsWith('lab')) {
-            // 近似 LAB 值
-            const l = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-            extraInfo = `灰階亮度: ${l}`;
-        } else if (currentEffect.startsWith('ycrcb')) {
-            // 計算 YCrCb 值
-            const y_val = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-            const cr = Math.round(128 + 0.5 * r - 0.419 * g - 0.081 * b);
-            const cb = Math.round(128 - 0.169 * r - 0.331 * g + 0.5 * b);
-            extraInfo = `YCrCb: (${y_val}, ${cr}, ${cb})`;
-        } else if (currentEffect === 'gray') {
-            const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-            extraInfo = `灰階值: ${gray}`;
-        }
+        // 更新主要數值顯示
+        pixelValuesDisplay.innerHTML = `<small>${mainLabel}: ${mainValues}</small>`;
 
+        // 更新額外資訊
         if (extraInfo) {
             extraChannelInfo.innerHTML = `<small>${extraInfo}</small>`;
         } else {
@@ -1023,9 +1174,7 @@ resultImage.addEventListener('mousemove', (e) => {
 resultImage.addEventListener('mouseleave', () => {
     pixelX.textContent = '-';
     pixelY.textContent = '-';
-    pixelR.textContent = '-';
-    pixelG.textContent = '-';
-    pixelB.textContent = '-';
+    pixelValuesDisplay.innerHTML = '<small>RGB: (-, -, -)</small>';
     colorPreview.style.backgroundColor = '#ccc';
     extraChannelInfo.innerHTML = '';
 });
@@ -1058,8 +1207,15 @@ function selectNumpyEffect(effect) {
     // 更新說明
     const effectInfo = numpyEffectsData[effect];
     if (effectInfo) {
+        const fullDesc = effectInfo.description || '無說明';
+
+        // 更新簡化說明區
         numpyDescTitle.textContent = effectInfo.name;
-        numpyDescText.textContent = effectInfo.description || '無說明';
+        numpyDescSummary.textContent = extractSummary(fullDesc);
+
+        // 更新 Modal 內容
+        numpyModalDescTitle.textContent = effectInfo.name;
+        numpyModalDescText.textContent = fullDesc;
 
         // 檢查是否需要圖片
         const requiresImage = effectInfo.requires_image || false;
