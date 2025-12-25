@@ -22,6 +22,7 @@
         width: 100%;
         cursor: pointer;
         transition: background 0.2s;
+        font-size: 0.9rem;
     }
     .effect-btn:hover {
         background: #e9ecef;
@@ -35,12 +36,13 @@
         padding: 10px 16px;
         background: #dee2e6;
         margin-top: 10px;
+        font-size: 0.85rem;
     }
     .category-header:first-child {
         margin-top: 0;
     }
     .image-container {
-        min-height: 300px;
+        min-height: 250px;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -49,11 +51,11 @@
     }
     .image-container img {
         max-width: 100%;
-        max-height: 500px;
+        max-height: 400px;
         object-fit: contain;
     }
     .code-container {
-        max-height: 400px;
+        max-height: 300px;
         overflow-y: auto;
     }
     .upload-zone {
@@ -79,7 +81,74 @@
         display: block;
     }
     pre code {
-        font-size: 0.85rem;
+        font-size: 0.8rem;
+    }
+    /* 說明區塊 */
+    .description-box {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 15px;
+    }
+    .description-box h5 {
+        margin-bottom: 10px;
+        font-weight: bold;
+    }
+    .description-box p {
+        margin-bottom: 0;
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+    /* 參數控制區 */
+    .params-box {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 15px;
+    }
+    .params-box h6 {
+        color: #856404;
+        margin-bottom: 15px;
+        font-weight: bold;
+    }
+    .param-group {
+        margin-bottom: 15px;
+    }
+    .param-group:last-child {
+        margin-bottom: 0;
+    }
+    .param-label {
+        font-weight: 500;
+        color: #333;
+        margin-bottom: 5px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .param-value {
+        color: #0d6efd;
+        font-weight: bold;
+        font-size: 0.9rem;
+    }
+    .form-range {
+        width: 100%;
+    }
+    .form-select, .form-check-input {
+        cursor: pointer;
+    }
+    .no-params {
+        color: #6c757d;
+        font-style: italic;
+        text-align: center;
+        padding: 10px;
+    }
+    /* 套用按鈕 */
+    .apply-btn {
+        width: 100%;
+        padding: 10px;
+        font-weight: bold;
     }
 </style>
 {% endblock %}
@@ -119,51 +188,76 @@
 
             <!-- 結果區域 -->
             <div id="resultSection" style="display: none;">
-                <div class="row">
-                    <!-- 原圖 -->
-                    <div class="col-md-6 mb-4">
-                        <div class="card">
-                            <div class="card-header bg-secondary text-white">
-                                <h6 class="mb-0">原始影像</h6>
-                            </div>
-                            <div class="card-body image-container">
-                                <img id="originalImage" src="" alt="原始影像">
-                            </div>
-                        </div>
-                    </div>
+                <!-- 說明區塊 -->
+                <div class="description-box" id="descriptionBox">
+                    <h5 id="descTitle">原始影像</h5>
+                    <p id="descText">顯示原始上傳的影像，不做任何處理。</p>
+                </div>
 
-                    <!-- 處理後 -->
-                    <div class="col-md-6 mb-4">
-                        <div class="card">
-                            <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
-                                <h6 class="mb-0">處理結果: <span id="effectName">原始影像</span></h6>
-                                <div class="spinner-border spinner-border-sm text-light loading" id="loadingSpinner" role="status">
-                                    <span class="visually-hidden">Loading...</span>
+                <div class="row">
+                    <!-- 左側：圖片顯示 -->
+                    <div class="col-lg-8">
+                        <div class="row">
+                            <!-- 原圖 -->
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-header bg-secondary text-white py-2">
+                                        <h6 class="mb-0 small">原始影像</h6>
+                                    </div>
+                                    <div class="card-body image-container p-2">
+                                        <img id="originalImage" src="" alt="原始影像">
+                                    </div>
                                 </div>
                             </div>
-                            <div class="card-body image-container">
-                                <img id="resultImage" src="" alt="處理結果">
+
+                            <!-- 處理後 -->
+                            <div class="col-md-6 mb-3">
+                                <div class="card">
+                                    <div class="card-header bg-info text-white py-2 d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-0 small">處理結果</h6>
+                                        <div class="spinner-border spinner-border-sm text-light loading" id="loadingSpinner" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body image-container p-2">
+                                        <img id="resultImage" src="" alt="處理結果">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 程式碼區域 -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 small">Python 程式碼</h6>
+                                <button class="btn btn-sm btn-outline-light py-0" id="copyCodeBtn">複製</button>
+                            </div>
+                            <div class="card-body code-container p-0">
+                                <pre class="m-0"><code id="codeBlock" class="python"></code></pre>
                             </div>
                         </div>
                     </div>
-                </div>
 
-                <!-- 程式碼區域 -->
-                <div class="card mb-4">
-                    <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
-                        <h6 class="mb-0">程式碼</h6>
-                        <button class="btn btn-sm btn-outline-light" id="copyCodeBtn">複製程式碼</button>
-                    </div>
-                    <div class="card-body code-container p-0">
-                        <pre class="m-0"><code id="codeBlock" class="python"></code></pre>
-                    </div>
-                </div>
+                    <!-- 右側：參數控制 -->
+                    <div class="col-lg-4">
+                        <div class="params-box">
+                            <h6>參數調整</h6>
+                            <div id="paramsContainer">
+                                <div class="no-params">此效果沒有可調整的參數</div>
+                            </div>
+                            <hr class="my-3">
+                            <button class="btn btn-warning apply-btn" id="applyBtn">
+                                套用效果
+                            </button>
+                        </div>
 
-                <!-- 重新上傳 -->
-                <div class="text-center">
-                    <button class="btn btn-outline-secondary" id="resetBtn">
-                        上傳新圖片
-                    </button>
+                        <!-- 重新上傳 -->
+                        <div class="text-center mt-3">
+                            <button class="btn btn-outline-secondary btn-sm" id="resetBtn">
+                                上傳新圖片
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -173,8 +267,11 @@
 
 {% block extra_scripts %}
 <script>
+// 效果資料（從後端載入）
+let effectsData = {};
 let currentFilename = null;
 let currentEffect = 'original';
+let currentParams = {};
 
 const uploadZone = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
@@ -182,12 +279,28 @@ const uploadSection = document.getElementById('uploadSection');
 const resultSection = document.getElementById('resultSection');
 const originalImage = document.getElementById('originalImage');
 const resultImage = document.getElementById('resultImage');
-const effectName = document.getElementById('effectName');
+const descTitle = document.getElementById('descTitle');
+const descText = document.getElementById('descText');
 const codeBlock = document.getElementById('codeBlock');
 const loadingSpinner = document.getElementById('loadingSpinner');
+const paramsContainer = document.getElementById('paramsContainer');
 const effectBtns = document.querySelectorAll('.effect-btn');
 const copyCodeBtn = document.getElementById('copyCodeBtn');
 const resetBtn = document.getElementById('resetBtn');
+const applyBtn = document.getElementById('applyBtn');
+
+// 載入效果資料
+async function loadEffectsData() {
+    try {
+        const response = await fetch('{{ url_for("effects") }}');
+        effectsData = await response.json();
+    } catch (error) {
+        console.error('載入效果資料失敗:', error);
+    }
+}
+
+// 初始化時載入效果資料
+loadEffectsData();
 
 // 拖曳上傳
 uploadZone.addEventListener('click', () => fileInput.click());
@@ -236,7 +349,7 @@ async function uploadFile(file) {
             resultSection.style.display = 'block';
 
             // 預設顯示原始影像
-            processImage('original');
+            selectEffect('original');
         } else {
             alert(data.error || '上傳失敗');
         }
@@ -245,17 +358,141 @@ async function uploadFile(file) {
     }
 }
 
-// 處理影像
-async function processImage(effect) {
-    if (!currentFilename) return;
-
-    loadingSpinner.classList.add('show');
+// 選擇效果（更新UI和參數）
+function selectEffect(effect) {
     currentEffect = effect;
 
     // 更新按鈕狀態
     effectBtns.forEach(btn => {
         btn.classList.toggle('active', btn.dataset.effect === effect);
     });
+
+    // 更新說明
+    const effectInfo = effectsData[effect];
+    if (effectInfo) {
+        descTitle.textContent = effectInfo.name;
+        descText.textContent = effectInfo.description || '無說明';
+
+        // 渲染參數控制
+        renderParams(effectInfo.params || []);
+    }
+
+    // 自動套用效果
+    processImage();
+}
+
+// 渲染參數控制項
+function renderParams(params) {
+    if (!params || params.length === 0) {
+        paramsContainer.innerHTML = '<div class="no-params">此效果沒有可調整的參數</div>';
+        currentParams = {};
+        return;
+    }
+
+    let html = '';
+    currentParams = {};
+
+    params.forEach(param => {
+        const paramId = `param_${param.name}`;
+        currentParams[param.name] = param.default;
+
+        html += `<div class="param-group">`;
+
+        if (param.type === 'slider') {
+            const step = param.step || 1;
+            const isFloat = step < 1;
+            html += `
+                <div class="param-label">
+                    <span>${param.label}</span>
+                    <span class="param-value" id="${paramId}_value">${param.default}</span>
+                </div>
+                <input type="range" class="form-range" id="${paramId}"
+                    min="${param.min}" max="${param.max}" step="${step}" value="${param.default}"
+                    data-param="${param.name}" data-type="slider" data-float="${isFloat}">
+            `;
+        } else if (param.type === 'select') {
+            html += `
+                <div class="param-label">
+                    <span>${param.label}</span>
+                </div>
+                <select class="form-select form-select-sm" id="${paramId}"
+                    data-param="${param.name}" data-type="select">
+            `;
+            param.options.forEach(opt => {
+                const selected = opt.value === param.default ? 'selected' : '';
+                html += `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
+            });
+            html += '</select>';
+        } else if (param.type === 'checkbox') {
+            const checked = param.default ? 'checked' : '';
+            html += `
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="${paramId}"
+                        data-param="${param.name}" data-type="checkbox" ${checked}>
+                    <label class="form-check-label" for="${paramId}">${param.label}</label>
+                </div>
+            `;
+        }
+
+        html += '</div>';
+    });
+
+    paramsContainer.innerHTML = html;
+
+    // 綁定事件
+    params.forEach(param => {
+        const paramId = `param_${param.name}`;
+        const element = document.getElementById(paramId);
+
+        if (param.type === 'slider') {
+            const valueDisplay = document.getElementById(`${paramId}_value`);
+            element.addEventListener('input', (e) => {
+                const isFloat = e.target.dataset.float === 'true';
+                const value = isFloat ? parseFloat(e.target.value) : parseInt(e.target.value);
+                valueDisplay.textContent = value;
+                currentParams[param.name] = value;
+            });
+        } else if (param.type === 'select') {
+            element.addEventListener('change', (e) => {
+                currentParams[param.name] = e.target.value;
+            });
+        } else if (param.type === 'checkbox') {
+            element.addEventListener('change', (e) => {
+                currentParams[param.name] = e.target.checked;
+            });
+        }
+    });
+}
+
+// 收集目前參數值
+function collectParams() {
+    const params = {};
+    const inputs = paramsContainer.querySelectorAll('[data-param]');
+
+    inputs.forEach(input => {
+        const paramName = input.dataset.param;
+        const paramType = input.dataset.type;
+
+        if (paramType === 'slider') {
+            const isFloat = input.dataset.float === 'true';
+            params[paramName] = isFloat ? parseFloat(input.value) : parseInt(input.value);
+        } else if (paramType === 'select') {
+            params[paramName] = input.value;
+        } else if (paramType === 'checkbox') {
+            params[paramName] = input.checked;
+        }
+    });
+
+    return params;
+}
+
+// 處理影像
+async function processImage() {
+    if (!currentFilename) return;
+
+    loadingSpinner.classList.add('show');
+
+    const params = collectParams();
 
     try {
         const response = await fetch('{{ url_for("process") }}', {
@@ -265,7 +502,8 @@ async function processImage(effect) {
             },
             body: JSON.stringify({
                 filename: currentFilename,
-                effect: effect
+                effect: currentEffect,
+                params: params
             })
         });
 
@@ -275,12 +513,6 @@ async function processImage(effect) {
             resultImage.src = data.image;
             codeBlock.textContent = data.code;
             hljs.highlightElement(codeBlock);
-
-            // 更新效果名稱
-            const btn = document.querySelector(`[data-effect="${effect}"]`);
-            if (btn) {
-                effectName.textContent = btn.textContent.trim();
-            }
         } else {
             alert(data.error || '處理失敗');
         }
@@ -294,8 +526,13 @@ async function processImage(effect) {
 // 效果按鈕點擊
 effectBtns.forEach(btn => {
     btn.addEventListener('click', () => {
-        processImage(btn.dataset.effect);
+        selectEffect(btn.dataset.effect);
     });
+});
+
+// 套用按鈕點擊
+applyBtn.addEventListener('click', () => {
+    processImage();
 });
 
 // 複製程式碼
@@ -303,7 +540,7 @@ copyCodeBtn.addEventListener('click', () => {
     navigator.clipboard.writeText(codeBlock.textContent).then(() => {
         copyCodeBtn.textContent = '已複製!';
         setTimeout(() => {
-            copyCodeBtn.textContent = '複製程式碼';
+            copyCodeBtn.textContent = '複製';
         }, 2000);
     });
 });
@@ -312,6 +549,7 @@ copyCodeBtn.addEventListener('click', () => {
 resetBtn.addEventListener('click', () => {
     currentFilename = null;
     currentEffect = 'original';
+    currentParams = {};
     uploadSection.style.display = 'block';
     resultSection.style.display = 'none';
     fileInput.value = '';
