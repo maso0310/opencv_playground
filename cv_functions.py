@@ -60,62 +60,79 @@ def get_all_effects():
         'weighted': {
             'name': '影像加權和',
             'category': '基礎',
-            'description': '將兩張影像按比例混合：dst = src1 × α + src2 × β + γ。常用於影像融合、浮水印、淡入淡出效果。',
+            'description': '將兩張影像按比例混合：dst = src1 × α + src2 × β + γ。這個公式讓你可以控制兩張圖的混合比例。α+β 不一定要等於 1，但若總和為 1 可保持亮度。常見應用包括：影像融合（如全景圖拼接的過渡區域）、半透明浮水印、影片淡入淡出效果、將圖片疊加到背景上。γ 參數可以調整整體亮度。',
             'params': [
                 {'name': 'alpha', 'label': '原圖權重 (α)', 'type': 'slider',
-                 'min': 0, 'max': 1, 'step': 0.1, 'default': 0.7}
+                 'min': 0, 'max': 1, 'step': 0.05, 'default': 0.7},
+                {'name': 'blend_type', 'label': '混合圖類型', 'type': 'select',
+                 'options': [
+                     {'value': 'gradient_h', 'label': '水平漸層 (左→右)'},
+                     {'value': 'gradient_v', 'label': '垂直漸層 (上→下)'},
+                     {'value': 'gradient_d', 'label': '對角漸層'},
+                     {'value': 'radial', 'label': '放射漸層 (中心→邊緣)'},
+                     {'value': 'solid', 'label': '純色背景'},
+                     {'value': 'checker', 'label': '棋盤格'},
+                     {'value': 'noise', 'label': '隨機雜訊'}
+                 ], 'default': 'gradient_h'},
+                {'name': 'color_r', 'label': '顏色 R', 'type': 'slider',
+                 'min': 0, 'max': 255, 'step': 5, 'default': 255},
+                {'name': 'color_g', 'label': '顏色 G', 'type': 'slider',
+                 'min': 0, 'max': 255, 'step': 5, 'default': 255},
+                {'name': 'color_b', 'label': '顏色 B', 'type': 'slider',
+                 'min': 0, 'max': 255, 'step': 5, 'default': 255}
             ]
         },
         'bitwise': {
             'name': '逐位元邏輯運算',
             'category': '基礎',
-            'description': '對影像進行位元運算（AND、OR、XOR、NOT）。常用於遮罩操作、影像合成。AND 運算可用於提取特定區域。',
+            'description': '「逐位元」是指對每個像素的二進位值逐一進行邏輯運算。例如像素值 200（二進位 11001000）與 50（00110010）進行 AND 運算，會得到 00000000（0）。這是因為 AND 運算只有兩個位元都是 1 時結果才是 1。\n\n【四種運算】\n• AND（交集）：兩者都為 1 才是 1，常用於「遮罩提取」，只保留遮罩為白色（255）的區域\n• OR（聯集）：任一為 1 就是 1，用於合併兩張圖的亮部\n• XOR（互斥或）：兩者不同才是 1，用於找出差異區域或簡易加密\n• NOT（反轉）：0 變 1、1 變 0，產生負片效果\n\n【實際應用】：去背合成、Logo 浮水印、遮罩選取、影像加密',
             'params': [
                 {'name': 'operation', 'label': '運算類型', 'type': 'select',
                  'options': [
-                     {'value': 'and', 'label': 'AND (交集)'},
-                     {'value': 'or', 'label': 'OR (聯集)'},
-                     {'value': 'xor', 'label': 'XOR (互斥)'},
-                     {'value': 'not', 'label': 'NOT (反轉)'}
+                     {'value': 'and', 'label': 'AND (交集/遮罩提取)'},
+                     {'value': 'or', 'label': 'OR (聯集/疊加亮部)'},
+                     {'value': 'xor', 'label': 'XOR (互斥/找差異)'},
+                     {'value': 'not', 'label': 'NOT (反轉/負片)'}
                  ], 'default': 'and'},
                 {'name': 'shape', 'label': '遮罩形狀', 'type': 'select',
                  'options': [
                      {'value': 'circle', 'label': '圓形'},
-                     {'value': 'rectangle', 'label': '矩形'}
-                 ], 'default': 'circle'}
-            ]
-        },
-        'mask': {
-            'name': '掩模 (Mask)',
-            'category': '基礎',
-            'description': '使用遮罩選取影像的特定區域。遮罩是一個二值影像，白色區域(255)會被保留，黑色區域(0)會被遮蔽。',
-            'params': [
-                {'name': 'shape', 'label': '遮罩形狀', 'type': 'select',
-                 'options': [
-                     {'value': 'circle', 'label': '圓形'},
                      {'value': 'rectangle', 'label': '矩形'},
-                     {'value': 'ellipse', 'label': '橢圓形'}
+                     {'value': 'ellipse', 'label': '橢圓形'},
+                     {'value': 'triangle', 'label': '三角形'}
                  ], 'default': 'circle'},
-                {'name': 'size', 'label': '遮罩大小 (%)', 'type': 'slider',
-                 'min': 10, 'max': 90, 'step': 5, 'default': 50}
+                {'name': 'mask_size', 'label': '遮罩大小 (%)', 'type': 'slider',
+                 'min': 10, 'max': 90, 'step': 5, 'default': 50},
+                {'name': 'center_x', 'label': '中心X位置 (%)', 'type': 'slider',
+                 'min': 10, 'max': 90, 'step': 5, 'default': 50},
+                {'name': 'center_y', 'label': '中心Y位置 (%)', 'type': 'slider',
+                 'min': 10, 'max': 90, 'step': 5, 'default': 50},
+                {'name': 'show_mask', 'label': '顯示遮罩', 'type': 'checkbox', 'default': False}
             ]
         },
         'bit_plane': {
             'name': '位元平面分解',
             'category': '基礎',
-            'description': '8位元灰階影像可分解為8個位元平面。最高位元(MSB)包含最多資訊，最低位元(LSB)包含較多雜訊。LSB常用於影像隱寫術。',
+            'description': '每個灰階像素值（0-255）可以用 8 個二進位位元表示，例如 200 = 11001000。「位元平面分解」就是把每個位元單獨提取出來顯示。\n\n【8個平面的意義】\n• 平面 7（MSB，最高位元）：代表 128 的位置，包含影像最主要的結構資訊\n• 平面 6-4：代表 64、32、16，仍包含可辨識的影像輪廓\n• 平面 3-1：代表 8、4、2，開始變得雜亂\n• 平面 0（LSB，最低位元）：代表 1，幾乎是隨機雜訊\n\n【實際應用】\n• 影像隱寫術（Steganography）：在 LSB 藏入秘密訊息，肉眼看不出差異\n• 影像壓縮：只保留高位元平面來減少資料量\n• 浮水印：在較高位元平面嵌入標記\n• 影像分析：檢查不同位元層的資訊分布',
             'params': [
-                {'name': 'plane', 'label': '位元平面', 'type': 'slider',
-                 'min': 0, 'max': 7, 'step': 1, 'default': 7}
+                {'name': 'plane', 'label': '位元平面 (0=LSB, 7=MSB)', 'type': 'slider',
+                 'min': 0, 'max': 7, 'step': 1, 'default': 7},
+                {'name': 'show_all', 'label': '顯示所有平面', 'type': 'checkbox', 'default': False}
             ]
         },
         'encrypt': {
             'name': '影像加密與解密',
             'category': '基礎',
-            'description': '使用 XOR 運算進行簡單加密。XOR 的特性：A⊕B=C，C⊕B=A，相同的金鑰可以加密和解密。',
+            'description': '利用 XOR（互斥或）運算進行簡單的對稱式加密。\n\n【XOR 加密原理】\nXOR 有個神奇的特性：對同一個數值做兩次 XOR 會還原！\n• 原始像素 ⊕ 金鑰 = 加密像素\n• 加密像素 ⊕ 金鑰 = 原始像素\n\n例如：200 ⊕ 50 = 254（加密），254 ⊕ 50 = 200（解密）\n\n【金鑰種子】\n我們用隨機數產生器製造金鑰圖。只要種子相同，產生的金鑰就相同，因此：\n• 加密時：設定種子 → 產生金鑰 → XOR\n• 解密時：設定「同樣的」種子 → 產生「同樣的」金鑰 → XOR 還原\n\n【安全性說明】\n這是教學用的簡易加密，真正的影像加密會使用 AES 等專業演算法。',
             'params': [
                 {'name': 'seed', 'label': '金鑰種子', 'type': 'slider',
-                 'min': 1, 'max': 100, 'step': 1, 'default': 42}
+                 'min': 1, 'max': 100, 'step': 1, 'default': 42},
+                {'name': 'display', 'label': '顯示內容', 'type': 'select',
+                 'options': [
+                     {'value': 'encrypted', 'label': '加密後的圖'},
+                     {'value': 'decrypted', 'label': '解密還原的圖'},
+                     {'value': 'both', 'label': '加密與解密並排'}
+                 ], 'default': 'both'}
             ]
         },
 
@@ -123,18 +140,30 @@ def get_all_effects():
         'color_space': {
             'name': '色彩空間轉換',
             'category': '色彩',
-            'description': 'BGR是OpenCV預設格式。HSV適合顏色過濾(H:色相,S:飽和度,V:明度)。LAB接近人眼感知。YCrCb用於影片壓縮。',
+            'description': '不同的色彩空間用不同方式描述顏色，各有其適用場景：\n\n【BGR/RGB】OpenCV 預設使用 BGR（藍綠紅）順序，一般圖片軟體用 RGB。\n\n【HSV】將顏色拆成「色相 H」（顏色種類 0-180）、「飽和度 S」（鮮豔程度）、「明度 V」（亮暗）。非常適合「顏色過濾」，例如找出畫面中所有紅色物體，只需指定 H 的範圍。\n\n【HLS】類似 HSV，但用「亮度 L」取代明度，有些場景更直觀。\n\n【LAB】L 是亮度，A 是綠-紅軸，B 是藍-黃軸。設計上接近人眼感知，常用於色彩校正、計算兩個顏色的「視覺差異」。\n\n【YCrCb】Y 是亮度，Cr/Cb 是色度。JPEG 和影片壓縮常用此格式，因為人眼對亮度敏感、對色度不敏感，可壓縮色度節省空間。也常用於膚色偵測。\n\n【實際應用】顏色過濾追蹤用 HSV、色彩校正用 LAB、皮膚偵測用 YCrCb',
             'params': [
                 {'name': 'space', 'label': '色彩空間', 'type': 'select',
                  'options': [
                      {'value': 'gray', 'label': '灰階 (Grayscale)'},
-                     {'value': 'hsv', 'label': 'HSV (色相/飽和度/明度)'},
-                     {'value': 'hsv_h', 'label': 'HSV - H通道 (色相)'},
-                     {'value': 'hsv_s', 'label': 'HSV - S通道 (飽和度)'},
-                     {'value': 'hsv_v', 'label': 'HSV - V通道 (明度)'},
-                     {'value': 'lab', 'label': 'LAB'},
-                     {'value': 'ycrcb', 'label': 'YCrCb'}
-                 ], 'default': 'gray'}
+                     {'value': 'rgb', 'label': 'RGB（調換 B 和 R）'},
+                     {'value': 'hsv', 'label': 'HSV 完整顯示'},
+                     {'value': 'hsv_h', 'label': 'HSV - H 色相（色彩地圖）'},
+                     {'value': 'hsv_s', 'label': 'HSV - S 飽和度'},
+                     {'value': 'hsv_v', 'label': 'HSV - V 明度'},
+                     {'value': 'hls', 'label': 'HLS 完整顯示'},
+                     {'value': 'hls_h', 'label': 'HLS - H 色相'},
+                     {'value': 'hls_l', 'label': 'HLS - L 亮度'},
+                     {'value': 'hls_s', 'label': 'HLS - S 飽和度'},
+                     {'value': 'lab', 'label': 'LAB 完整顯示'},
+                     {'value': 'lab_l', 'label': 'LAB - L 亮度'},
+                     {'value': 'lab_a', 'label': 'LAB - A 綠紅軸'},
+                     {'value': 'lab_b', 'label': 'LAB - B 藍黃軸'},
+                     {'value': 'ycrcb', 'label': 'YCrCb 完整顯示'},
+                     {'value': 'ycrcb_y', 'label': 'YCrCb - Y 亮度'},
+                     {'value': 'ycrcb_cr', 'label': 'YCrCb - Cr 紅色色度'},
+                     {'value': 'ycrcb_cb', 'label': 'YCrCb - Cb 藍色色度'}
+                 ], 'default': 'hsv_h'},
+                {'name': 'colorize_h', 'label': 'H通道用彩色顯示', 'type': 'checkbox', 'default': True}
             ]
         },
 
@@ -453,7 +482,6 @@ def process_image(img, effect, params=None):
         'arithmetic': process_arithmetic,
         'weighted': process_weighted,
         'bitwise': process_bitwise,
-        'mask': process_mask,
         'bit_plane': process_bit_plane,
         'encrypt': process_encrypt,
         'color_space': process_color_space,
@@ -570,45 +598,123 @@ dark = cv2.subtract(img, np.ones_like(img) * {value})
 
 def process_weighted(img, params):
     alpha = float(params.get('alpha', 0.7))
+    blend_type = params.get('blend_type', 'gradient_h')
+    color_r = int(params.get('color_r', 255))
+    color_g = int(params.get('color_g', 255))
+    color_b = int(params.get('color_b', 255))
     h, w = img.shape[:2]
 
-    gradient = np.zeros_like(img)
-    for i in range(w):
-        gradient[:, i] = [int(255 * i / w)] * 3
+    # 生成第二張圖
+    blend_img = np.zeros_like(img)
 
-    result = cv2.addWeighted(img, alpha, gradient, 1-alpha, 0)
+    if blend_type == 'gradient_h':
+        # 水平漸層
+        for i in range(w):
+            ratio = i / w
+            blend_img[:, i] = [int(color_b * ratio), int(color_g * ratio), int(color_r * ratio)]
+    elif blend_type == 'gradient_v':
+        # 垂直漸層
+        for j in range(h):
+            ratio = j / h
+            blend_img[j, :] = [int(color_b * ratio), int(color_g * ratio), int(color_r * ratio)]
+    elif blend_type == 'gradient_d':
+        # 對角漸層
+        for j in range(h):
+            for i in range(w):
+                ratio = (i + j) / (w + h)
+                blend_img[j, i] = [int(color_b * ratio), int(color_g * ratio), int(color_r * ratio)]
+    elif blend_type == 'radial':
+        # 放射漸層
+        cx, cy = w // 2, h // 2
+        max_dist = np.sqrt(cx**2 + cy**2)
+        for j in range(h):
+            for i in range(w):
+                dist = np.sqrt((i - cx)**2 + (j - cy)**2)
+                ratio = dist / max_dist
+                blend_img[j, i] = [int(color_b * ratio), int(color_g * ratio), int(color_r * ratio)]
+    elif blend_type == 'solid':
+        # 純色
+        blend_img[:] = [color_b, color_g, color_r]
+    elif blend_type == 'checker':
+        # 棋盤格
+        block_size = max(w, h) // 8
+        for j in range(h):
+            for i in range(w):
+                if ((i // block_size) + (j // block_size)) % 2 == 0:
+                    blend_img[j, i] = [color_b, color_g, color_r]
+    elif blend_type == 'noise':
+        # 隨機雜訊
+        blend_img = np.random.randint(0, 256, (h, w, 3), dtype=np.uint8)
+
+    result = cv2.addWeighted(img, alpha, blend_img, 1-alpha, 0)
+
+    blend_desc = {
+        'gradient_h': '水平漸層', 'gradient_v': '垂直漸層', 'gradient_d': '對角漸層',
+        'radial': '放射漸層', 'solid': '純色', 'checker': '棋盤格', 'noise': '隨機雜訊'
+    }
 
     code = f'''import cv2
+import numpy as np
 
 img1 = cv2.imread('image1.jpg')
-img2 = cv2.imread('image2.jpg')
+img2 = cv2.imread('image2.jpg')  # 或自行生成
 
-# 影像加權和公式: dst = src1 * α + src2 * β + γ
-alpha = {alpha}
-beta = {1-alpha:.1f}
-gamma = 0
+# 混合類型: {blend_desc.get(blend_type, blend_type)}
 
-result = cv2.addWeighted(img1, alpha, img2, beta, gamma)
+# 範例: 生成水平漸層圖
+h, w = img1.shape[:2]
+gradient = np.zeros_like(img1)
+for i in range(w):
+    ratio = i / w
+    gradient[:, i] = [int(255 * ratio)] * 3
 
-# 應用場景:
-# - 影像融合
-# - 浮水印 (alpha 接近 1)
-# - 淡入淡出效果'''
+# 影像加權和公式: dst = src1 × α + src2 × β + γ
+alpha = {alpha}  # 原圖權重
+beta = {1-alpha:.2f}   # 混合圖權重
+gamma = 0        # 亮度偏移
+
+result = cv2.addWeighted(img1, alpha, gradient, beta, gamma)
+
+# α 越大，原圖越清楚
+# β 越大，混合圖越明顯
+# α + β = 1 時，整體亮度不變'''
     return result, code
 
 
 def process_bitwise(img, params):
     operation = params.get('operation', 'and')
     shape = params.get('shape', 'circle')
+    mask_size = int(params.get('mask_size', 50))
+    center_x = int(params.get('center_x', 50))
+    center_y = int(params.get('center_y', 50))
+    show_mask = params.get('show_mask', False)
     h, w = img.shape[:2]
 
+    # 計算遮罩位置和大小
+    cx = int(w * center_x / 100)
+    cy = int(h * center_y / 100)
+    size = int(min(h, w) * mask_size / 100 / 2)
+
+    # 建立遮罩
     mask = np.zeros((h, w), dtype=np.uint8)
     if shape == 'circle':
-        cv2.circle(mask, (w//2, h//2), min(h, w)//3, 255, -1)
-    else:
-        cv2.rectangle(mask, (w//4, h//4), (3*w//4, 3*h//4), 255, -1)
+        cv2.circle(mask, (cx, cy), size, 255, -1)
+    elif shape == 'rectangle':
+        cv2.rectangle(mask, (cx - size, cy - size), (cx + size, cy + size), 255, -1)
+    elif shape == 'ellipse':
+        cv2.ellipse(mask, (cx, cy), (size, size // 2), 0, 0, 360, 255, -1)
+    elif shape == 'triangle':
+        pts = np.array([
+            [cx, cy - size],
+            [cx - size, cy + size],
+            [cx + size, cy + size]
+        ], np.int32)
+        cv2.fillPoly(mask, [pts], 255)
 
-    if operation == 'and':
+    # 如果只顯示遮罩
+    if show_mask:
+        result = cv2.cvtColor(mask, cv2.COLOR_GRAY2BGR)
+    elif operation == 'and':
         result = cv2.bitwise_and(img, img, mask=mask)
     elif operation == 'or':
         mask_3ch = cv2.merge([mask, mask, mask])
@@ -619,45 +725,12 @@ def process_bitwise(img, params):
     else:  # not
         result = cv2.bitwise_not(img)
 
-    code = f'''import cv2
-import numpy as np
-
-img = cv2.imread('image.jpg')
-h, w = img.shape[:2]
-
-# 建立遮罩 (形狀: {shape})
-mask = np.zeros((h, w), dtype=np.uint8)
-cv2.{'circle(mask, (w//2, h//2), min(h,w)//3, 255, -1)' if shape == 'circle' else 'rectangle(mask, (w//4, h//4), (3*w//4, 3*h//4), 255, -1)'}
-
-# 逐位元 {operation.upper()} 運算
-result = cv2.bitwise_{operation}(img, img, mask=mask)
-
-# 其他運算:
-# cv2.bitwise_and()  - 交集
-# cv2.bitwise_or()   - 聯集
-# cv2.bitwise_xor()  - 互斥
-# cv2.bitwise_not()  - 反轉'''
-    return result, code
-
-
-def process_mask(img, params):
-    shape = params.get('shape', 'circle')
-    size = int(params.get('size', 50))
-    h, w = img.shape[:2]
-
-    mask = np.zeros((h, w), dtype=np.uint8)
-    radius = int(min(h, w) * size / 100 / 2)
-
-    if shape == 'circle':
-        cv2.circle(mask, (w//2, h//2), radius, 255, -1)
-    elif shape == 'rectangle':
-        x1, y1 = w//2 - radius, h//2 - radius
-        x2, y2 = w//2 + radius, h//2 + radius
-        cv2.rectangle(mask, (x1, y1), (x2, y2), 255, -1)
-    else:  # ellipse
-        cv2.ellipse(mask, (w//2, h//2), (radius, radius//2), 0, 0, 360, 255, -1)
-
-    result = cv2.bitwise_and(img, img, mask=mask)
+    shape_code = {
+        'circle': f'cv2.circle(mask, ({cx}, {cy}), {size}, 255, -1)',
+        'rectangle': f'cv2.rectangle(mask, ({cx - size}, {cy - size}), ({cx + size}, {cy + size}), 255, -1)',
+        'ellipse': f'cv2.ellipse(mask, ({cx}, {cy}), ({size}, {size // 2}), 0, 0, 360, 255, -1)',
+        'triangle': 'pts = np.array([...], np.int32); cv2.fillPoly(mask, [pts], 255)'
+    }
 
     code = f'''import cv2
 import numpy as np
@@ -665,52 +738,114 @@ import numpy as np
 img = cv2.imread('image.jpg')
 h, w = img.shape[:2]
 
-# 建立遮罩 (形狀: {shape}, 大小: {size}%)
+# 建立遮罩 (形狀: {shape}, 大小: {mask_size}%, 位置: ({center_x}%, {center_y}%))
 mask = np.zeros((h, w), dtype=np.uint8)
+{shape_code.get(shape, '')}
 
-# 在遮罩上繪製白色區域 (要保留的部分)
-# 圓形: cv2.circle(mask, center, radius, 255, -1)
-# 矩形: cv2.rectangle(mask, pt1, pt2, 255, -1)
-# 橢圓: cv2.ellipse(mask, center, axes, angle, 0, 360, 255, -1)
+# 逐位元運算說明：
+# 像素值 200 = 二進位 11001000
+# 像素值  50 = 二進位 00110010
+# AND 結果   = 二進位 00000000 = 0  (兩者都為1才是1)
+# OR 結果    = 二進位 11111010 = 250 (任一為1就是1)
+# XOR 結果   = 二進位 11111010 = 250 (不同才是1)
 
-# 套用遮罩
-result = cv2.bitwise_and(img, img, mask=mask)'''
+# 執行 {operation.upper()} 運算
+{"result = cv2.bitwise_and(img, img, mask=mask)  # 用 mask 提取區域" if operation == 'and' else ""}
+{"mask_3ch = cv2.merge([mask, mask, mask]); result = cv2.bitwise_or(img, mask_3ch)" if operation == 'or' else ""}
+{"mask_3ch = cv2.merge([mask, mask, mask]); result = cv2.bitwise_xor(img, mask_3ch)" if operation == 'xor' else ""}
+{"result = cv2.bitwise_not(img)  # 反轉所有像素" if operation == 'not' else ""}
+
+# 實際應用：
+# AND + 遮罩：去背、提取特定區域
+# XOR：找出兩張圖的差異、簡易加密'''
     return result, code
 
 
 def process_bit_plane(img, params):
     plane = int(params.get('plane', 7))
+    show_all = params.get('show_all', False)
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
 
-    bit_plane = (gray >> plane) & 1
-    result = (bit_plane * 255).astype(np.uint8)
-    result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+    if show_all:
+        # 顯示所有 8 個位元平面
+        h, w = gray.shape
+        # 2x4 排列
+        cell_h, cell_w = h // 2, w // 4
+        result = np.zeros((h, w), dtype=np.uint8)
+
+        for i in range(8):
+            row, col = i // 4, i % 4
+            bit_plane = ((gray >> (7 - i)) & 1) * 255
+            resized = cv2.resize(bit_plane, (cell_w, cell_h))
+            result[row*cell_h:(row+1)*cell_h, col*cell_w:(col+1)*cell_w] = resized
+
+        result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+        # 加上標籤
+        for i in range(8):
+            row, col = i // 4, i % 4
+            cv2.putText(result, f'Bit {7-i}', (col*cell_w + 5, row*cell_h + 20),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 1)
+    else:
+        bit_plane = (gray >> plane) & 1
+        result = (bit_plane * 255).astype(np.uint8)
+        result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
 
     code = f'''import cv2
 import numpy as np
 
 img = cv2.imread('image.jpg', cv2.IMREAD_GRAYSCALE)
 
-# 提取第 {plane} 個位元平面 (0=LSB, 7=MSB)
-bit_plane = (img >> {plane}) & 1
-bit_plane = bit_plane * 255  # 放大到 0-255
+# 像素值的二進位表示
+# 例如 200 = 11001000 (二進位)
+#          ^^^^^^^^
+#          76543210  <- 位元位置
 
-# 位元平面說明:
-# - 平面 7 (MSB): 包含最多視覺資訊
-# - 平面 0 (LSB): 主要是雜訊，常用於隱寫術
+# 提取第 {plane} 個位元平面 (0=LSB 最低位, 7=MSB 最高位)
+bit_plane = (img >> {plane}) & 1  # 右移後取最低位
+bit_plane = bit_plane * 255       # 0/1 -> 0/255
 
-# 重建影像 (只保留高位元)
-reconstructed = (img >> 4) << 4  # 只保留高 4 位元'''
+# 各位元平面的意義：
+# Bit 7 (MSB): 代表 128，包含最主要的結構資訊
+# Bit 6: 代表 64
+# Bit 5: 代表 32
+# Bit 4: 代表 16
+# ...
+# Bit 0 (LSB): 代表 1，幾乎是隨機雜訊
+
+# 影像隱寫術範例：在 LSB 藏入訊息
+secret = 1  # 要藏的位元
+img_with_secret = (img & 0xFE) | secret  # 清除 LSB 後設定新值
+
+# 重建影像（只保留高位元）
+reconstructed = (img >> 4) << 4  # 只保留高 4 位元，減少 16 倍資料量'''
     return result, code
 
 
 def process_encrypt(img, params):
     seed = int(params.get('seed', 42))
+    display = params.get('display', 'both')
     h, w = img.shape[:2]
 
+    # 加密
     np.random.seed(seed)
     key = np.random.randint(0, 256, (h, w, 3), dtype=np.uint8)
-    result = cv2.bitwise_xor(img, key)
+    encrypted = cv2.bitwise_xor(img, key)
+
+    # 解密
+    np.random.seed(seed)
+    key = np.random.randint(0, 256, (h, w, 3), dtype=np.uint8)
+    decrypted = cv2.bitwise_xor(encrypted, key)
+
+    if display == 'encrypted':
+        result = encrypted
+    elif display == 'decrypted':
+        result = decrypted
+    else:  # both
+        # 並排顯示：加密 | 解密
+        result = np.hstack([encrypted, decrypted])
+        # 加上標籤
+        cv2.putText(result, 'Encrypted', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+        cv2.putText(result, 'Decrypted', (w + 10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
 
     code = f'''import cv2
 import numpy as np
@@ -718,69 +853,163 @@ import numpy as np
 img = cv2.imread('image.jpg')
 h, w = img.shape[:2]
 
-# 產生隨機金鑰 (種子: {seed})
+# === 加密過程 ===
+# 1. 設定金鑰種子（必須記住這個數字才能解密！）
 np.random.seed({seed})
+
+# 2. 產生與圖片同大小的隨機金鑰
 key = np.random.randint(0, 256, (h, w, 3), dtype=np.uint8)
 
-# 加密 (XOR 運算)
+# 3. 用 XOR 加密
 encrypted = cv2.bitwise_xor(img, key)
+cv2.imwrite('encrypted.png', encrypted)
 
-# 解密 (再次 XOR 同樣的金鑰)
-np.random.seed({seed})  # 重設種子產生相同金鑰
+# === 解密過程 ===
+# 1. 用「相同的」種子重新產生金鑰
+np.random.seed({seed})  # 必須與加密時相同！
 key = np.random.randint(0, 256, (h, w, 3), dtype=np.uint8)
-decrypted = cv2.bitwise_xor(encrypted, key)'''
+
+# 2. 再次 XOR 就能還原
+decrypted = cv2.bitwise_xor(encrypted, key)
+
+# === XOR 還原原理 ===
+# 原始像素:   11001000 (200)
+# 金鑰:       00110010 (50)
+# 加密結果:   11111010 (250) = 200 XOR 50
+# 解密:       11111010 XOR 00110010 = 11001000 (200) 還原了！'''
     return result, code
 
 
 def process_color_space(img, params):
-    space = params.get('space', 'gray')
+    space = params.get('space', 'hsv_h')
+    colorize_h = params.get('colorize_h', True)
 
     if space == 'gray':
         result = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         result = cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+    elif space == 'rgb':
+        result = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
     elif space == 'hsv':
-        result = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        # 顯示 HSV 的效果（直接轉回 BGR 會有奇怪的顏色，這是預期的）
+        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+        result = hsv.copy()
         result = cv2.cvtColor(result, cv2.COLOR_HSV2BGR)
     elif space == 'hsv_h':
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        result = cv2.cvtColor(hsv[:,:,0], cv2.COLOR_GRAY2BGR)
+        h_channel = hsv[:, :, 0]
+        if colorize_h:
+            # 用彩色方式顯示 H 通道（色相環）
+            colored_h = np.zeros_like(img)
+            colored_h[:, :, 0] = h_channel  # H
+            colored_h[:, :, 1] = 255  # S = 255 (全飽和)
+            colored_h[:, :, 2] = 255  # V = 255 (全亮)
+            result = cv2.cvtColor(colored_h, cv2.COLOR_HSV2BGR)
+        else:
+            result = cv2.cvtColor(h_channel, cv2.COLOR_GRAY2BGR)
     elif space == 'hsv_s':
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        result = cv2.cvtColor(hsv[:,:,1], cv2.COLOR_GRAY2BGR)
+        result = cv2.cvtColor(hsv[:, :, 1], cv2.COLOR_GRAY2BGR)
     elif space == 'hsv_v':
         hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-        result = cv2.cvtColor(hsv[:,:,2], cv2.COLOR_GRAY2BGR)
+        result = cv2.cvtColor(hsv[:, :, 2], cv2.COLOR_GRAY2BGR)
+    elif space == 'hls':
+        hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+        result = cv2.cvtColor(hls, cv2.COLOR_HLS2BGR)
+    elif space == 'hls_h':
+        hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+        h_channel = hls[:, :, 0]
+        if colorize_h:
+            colored_h = np.zeros_like(img)
+            colored_h[:, :, 0] = h_channel
+            colored_h[:, :, 1] = 128  # L
+            colored_h[:, :, 2] = 255  # S
+            result = cv2.cvtColor(colored_h, cv2.COLOR_HLS2BGR)
+        else:
+            result = cv2.cvtColor(h_channel, cv2.COLOR_GRAY2BGR)
+    elif space == 'hls_l':
+        hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+        result = cv2.cvtColor(hls[:, :, 1], cv2.COLOR_GRAY2BGR)
+    elif space == 'hls_s':
+        hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+        result = cv2.cvtColor(hls[:, :, 2], cv2.COLOR_GRAY2BGR)
     elif space == 'lab':
-        result = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-        result = cv2.cvtColor(result, cv2.COLOR_LAB2BGR)
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        result = cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+    elif space == 'lab_l':
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        result = cv2.cvtColor(lab[:, :, 0], cv2.COLOR_GRAY2BGR)
+    elif space == 'lab_a':
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        result = cv2.cvtColor(lab[:, :, 1], cv2.COLOR_GRAY2BGR)
+    elif space == 'lab_b':
+        lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+        result = cv2.cvtColor(lab[:, :, 2], cv2.COLOR_GRAY2BGR)
     elif space == 'ycrcb':
-        result = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
-        result = cv2.cvtColor(result, cv2.COLOR_YCrCb2BGR)
+        ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+        result = cv2.cvtColor(ycrcb, cv2.COLOR_YCrCb2BGR)
+    elif space == 'ycrcb_y':
+        ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+        result = cv2.cvtColor(ycrcb[:, :, 0], cv2.COLOR_GRAY2BGR)
+    elif space == 'ycrcb_cr':
+        ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+        result = cv2.cvtColor(ycrcb[:, :, 1], cv2.COLOR_GRAY2BGR)
+    elif space == 'ycrcb_cb':
+        ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+        result = cv2.cvtColor(ycrcb[:, :, 2], cv2.COLOR_GRAY2BGR)
     else:
         result = img
 
+    space_desc = {
+        'gray': '灰階', 'rgb': 'RGB', 'hsv': 'HSV', 'hsv_h': 'HSV-H色相',
+        'hsv_s': 'HSV-S飽和度', 'hsv_v': 'HSV-V明度',
+        'hls': 'HLS', 'hls_h': 'HLS-H色相', 'hls_l': 'HLS-L亮度', 'hls_s': 'HLS-S飽和度',
+        'lab': 'LAB', 'lab_l': 'LAB-L亮度', 'lab_a': 'LAB-A', 'lab_b': 'LAB-B',
+        'ycrcb': 'YCrCb', 'ycrcb_y': 'YCrCb-Y亮度', 'ycrcb_cr': 'YCrCb-Cr', 'ycrcb_cb': 'YCrCb-Cb'
+    }
+
     code = f'''import cv2
+import numpy as np
 
 img = cv2.imread('image.jpg')
 
-# 色彩空間轉換: {space}
+# 色彩空間: {space_desc.get(space, space)}
 
-# 常用轉換:
+# === 各色彩空間說明 ===
+
+# 灰階
 gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+
+# HSV (色相 H, 飽和度 S, 明度 V)
 hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
-lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
-ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
-
-# HSV 通道分離
 h, s, v = cv2.split(hsv)
-# H: 色相 (0-180)
-# S: 飽和度 (0-255)
-# V: 明度 (0-255)
+# H: 0-180 (OpenCV 用 180 而非 360，紅色約 0/180，綠色約 60，藍色約 120)
+# S: 0-255 (越高越鮮豔)
+# V: 0-255 (越高越亮)
 
-# 常見應用:
-# - HSV: 顏色過濾、物體追蹤
-# - LAB: 色彩校正、與人眼感知相近
-# - YCrCb: 皮膚偵測、影片壓縮'''
+# 用 HSV 過濾特定顏色（例如：找紅色物體）
+lower_red = np.array([0, 100, 100])
+upper_red = np.array([10, 255, 255])
+mask = cv2.inRange(hsv, lower_red, upper_red)
+
+# HLS (色相 H, 亮度 L, 飽和度 S)
+hls = cv2.cvtColor(img, cv2.COLOR_BGR2HLS)
+
+# LAB (接近人眼感知)
+lab = cv2.cvtColor(img, cv2.COLOR_BGR2LAB)
+# L: 亮度 0-255
+# A: 綠(-128)到紅(+127)
+# B: 藍(-128)到黃(+127)
+
+# YCrCb (JPEG/影片常用)
+ycrcb = cv2.cvtColor(img, cv2.COLOR_BGR2YCrCb)
+# Y: 亮度
+# Cr: 紅色色度
+# Cb: 藍色色度
+
+# 膚色偵測範例 (YCrCb)
+lower_skin = np.array([0, 133, 77])
+upper_skin = np.array([255, 173, 127])
+skin_mask = cv2.inRange(ycrcb, lower_skin, upper_skin)'''
     return result, code
 
 

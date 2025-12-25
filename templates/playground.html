@@ -150,6 +150,27 @@
         padding: 10px;
         font-weight: bold;
     }
+    /* 像素顏色顯示器 */
+    .pixel-info-box {
+        background: #2d3748;
+        color: white;
+        padding: 8px 12px;
+        border-radius: 6px;
+        font-family: monospace;
+    }
+    .color-preview {
+        width: 40px;
+        height: 40px;
+        border-radius: 6px;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .pixel-values {
+        flex: 1;
+    }
+    .pixel-values small {
+        font-size: 0.8rem;
+    }
 </style>
 {% endblock %}
 
@@ -219,8 +240,20 @@
                                             <span class="visually-hidden">Loading...</span>
                                         </div>
                                     </div>
-                                    <div class="card-body image-container p-2">
-                                        <img id="resultImage" src="" alt="處理結果">
+                                    <div class="card-body image-container p-2" style="position: relative;">
+                                        <img id="resultImage" src="" alt="處理結果" style="cursor: crosshair;">
+                                        <canvas id="pixelCanvas" style="display: none;"></canvas>
+                                    </div>
+                                </div>
+                                <!-- 像素顏色顯示器 -->
+                                <div class="pixel-info-box mt-2" id="pixelInfoBox" style="display: none;">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="color-preview" id="colorPreview"></div>
+                                        <div class="pixel-values">
+                                            <div><small>座標: (<span id="pixelX">-</span>, <span id="pixelY">-</span>)</small></div>
+                                            <div><small>RGB: (<span id="pixelR">-</span>, <span id="pixelG">-</span>, <span id="pixelB">-</span>)</small></div>
+                                            <div id="extraChannelInfo"><small></small></div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -555,6 +588,99 @@ resetBtn.addEventListener('click', () => {
     fileInput.value = '';
 
     effectBtns.forEach(btn => btn.classList.remove('active'));
+});
+
+// ===== 像素顏色顯示器 =====
+const pixelCanvas = document.getElementById('pixelCanvas');
+const pixelCtx = pixelCanvas.getContext('2d');
+const pixelInfoBox = document.getElementById('pixelInfoBox');
+const colorPreview = document.getElementById('colorPreview');
+const pixelX = document.getElementById('pixelX');
+const pixelY = document.getElementById('pixelY');
+const pixelR = document.getElementById('pixelR');
+const pixelG = document.getElementById('pixelG');
+const pixelB = document.getElementById('pixelB');
+const extraChannelInfo = document.getElementById('extraChannelInfo');
+
+// 當結果圖片載入時，繪製到 canvas
+resultImage.addEventListener('load', () => {
+    pixelCanvas.width = resultImage.naturalWidth;
+    pixelCanvas.height = resultImage.naturalHeight;
+    pixelCtx.drawImage(resultImage, 0, 0);
+    pixelInfoBox.style.display = 'block';
+});
+
+// 滑鼠移動時讀取像素顏色
+resultImage.addEventListener('mousemove', (e) => {
+    const rect = resultImage.getBoundingClientRect();
+    const scaleX = resultImage.naturalWidth / rect.width;
+    const scaleY = resultImage.naturalHeight / rect.height;
+
+    const x = Math.floor((e.clientX - rect.left) * scaleX);
+    const y = Math.floor((e.clientY - rect.top) * scaleY);
+
+    if (x >= 0 && x < pixelCanvas.width && y >= 0 && y < pixelCanvas.height) {
+        const pixel = pixelCtx.getImageData(x, y, 1, 1).data;
+        const r = pixel[0], g = pixel[1], b = pixel[2];
+
+        // 更新顯示
+        pixelX.textContent = x;
+        pixelY.textContent = y;
+        pixelR.textContent = r;
+        pixelG.textContent = g;
+        pixelB.textContent = b;
+        colorPreview.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+
+        // 根據目前效果顯示額外資訊
+        let extraInfo = '';
+        if (currentEffect.startsWith('hsv') || currentEffect.startsWith('hls')) {
+            // 計算 HSV/HLS 值
+            const max = Math.max(r, g, b) / 255;
+            const min = Math.min(r, g, b) / 255;
+            const d = max - min;
+            let h = 0, s = 0, v = max;
+            if (d > 0) {
+                s = max > 0 ? d / max : 0;
+                if (max === r / 255) h = ((g - b) / 255 / d) % 6;
+                else if (max === g / 255) h = (b - r) / 255 / d + 2;
+                else h = (r - g) / 255 / d + 4;
+                h = Math.round(h * 30);  // OpenCV 用 0-180
+                if (h < 0) h += 180;
+            }
+            s = Math.round(s * 255);
+            v = Math.round(v * 255);
+            extraInfo = `HSV: (${h}, ${s}, ${v})`;
+        } else if (currentEffect.startsWith('lab')) {
+            // 近似 LAB 值
+            const l = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+            extraInfo = `灰階亮度: ${l}`;
+        } else if (currentEffect.startsWith('ycrcb')) {
+            // 計算 YCrCb 值
+            const y_val = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+            const cr = Math.round(128 + 0.5 * r - 0.419 * g - 0.081 * b);
+            const cb = Math.round(128 - 0.169 * r - 0.331 * g + 0.5 * b);
+            extraInfo = `YCrCb: (${y_val}, ${cr}, ${cb})`;
+        } else if (currentEffect === 'gray') {
+            const gray = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+            extraInfo = `灰階值: ${gray}`;
+        }
+
+        if (extraInfo) {
+            extraChannelInfo.innerHTML = `<small>${extraInfo}</small>`;
+        } else {
+            extraChannelInfo.innerHTML = '';
+        }
+    }
+});
+
+resultImage.addEventListener('mouseleave', () => {
+    pixelX.textContent = '-';
+    pixelY.textContent = '-';
+    pixelR.textContent = '-';
+    pixelG.textContent = '-';
+    pixelB.textContent = '-';
+    colorPreview.style.backgroundColor = '#ccc';
+    extraChannelInfo.innerHTML = '';
 });
 
 // 初始化 highlight.js
