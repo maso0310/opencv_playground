@@ -104,8 +104,6 @@
 
         .notebook-body {
             padding: 1rem;
-            max-height: calc(100vh - 250px);
-            overflow-y: auto;
         }
 
         /* Code Cell */
@@ -642,6 +640,37 @@ total_pixels = mask.shape[0] * mask.shape[1]
 coverage = (vegetation_pixels / total_pixels) * 100
 
 print(f"植被覆蓋率: {coverage:.2f}%")`
+            },
+            {
+                title: '步驟 6: 產生直方圖',
+                code: `# 使用 matplotlib 產生直方圖
+import matplotlib
+matplotlib.use('Agg')  # 非互動模式
+import matplotlib.pyplot as plt
+import io
+import base64
+
+# 取得植被區域的 ExG 值
+vegetation_values = ExG[mask == 255].flatten()
+
+# 繪製直方圖
+fig, ax = plt.subplots(figsize=(8, 5))
+ax.hist(vegetation_values, bins=50, color='green', alpha=0.7, edgecolor='darkgreen')
+ax.axvline(x=threshold_value/255, color='red', linestyle='--', linewidth=2, label=f'Otsu 閾值')
+ax.set_xlabel('ExG 值', fontsize=12)
+ax.set_ylabel('像素數量', fontsize=12)
+ax.set_title(f'植被區域 ExG 分布 (覆蓋率: {coverage:.1f}%)', fontsize=14)
+ax.legend()
+ax.grid(True, alpha=0.3)
+
+# 轉換為 base64
+buf = io.BytesIO()
+fig.savefig(buf, format='png', dpi=100, bbox_inches='tight')
+buf.seek(0)
+histogram_img = 'data:image/png;base64,' + base64.b64encode(buf.read()).decode('utf-8')
+plt.close(fig)
+
+print("直方圖已產生！")`
             }
         ];
 

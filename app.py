@@ -360,50 +360,59 @@ def execute_code():
     if 'img' not in exec_globals and sample_img is not None:
         exec_globals['img'] = sample_img.copy()
 
+    # 記錄執行前已存在的變數
+    existing_vars = set(session['variables'].keys())
+
     try:
         # 執行程式碼
         exec(code, exec_globals)
 
         # 儲存變數到 session (排除模組和內建)
+        new_vars = set()
         for key, value in exec_globals.items():
-            if not key.startswith('_') and key not in ['cv2', 'np', 'numpy']:
+            if not key.startswith('_') and key not in ['cv2', 'np', 'numpy', 'print']:
                 if isinstance(value, (np.ndarray, int, float, str, list, dict, tuple)):
                     session['variables'][key] = value
+                    if key not in existing_vars:
+                        new_vars.add(key)
 
-        # 準備回傳的圖片結果
+        # 只顯示本次新產生的圖片變數
         images = {}
         variables_info = {}
 
         for key, value in session['variables'].items():
             if isinstance(value, np.ndarray):
                 if value.ndim == 2 or (value.ndim == 3 and value.shape[2] in [1, 3, 4]):
-                    # 是圖片
-                    try:
-                        if value.ndim == 2:
-                            # 灰階圖，正規化顯示
-                            display_img = value.copy()
-                            if display_img.dtype != np.uint8:
-                                if display_img.max() > 1 or display_img.min() < 0:
-                                    display_img = cv2.normalize(display_img, None, 0, 255, cv2.NORM_MINMAX)
-                                else:
-                                    display_img = (display_img * 255).clip(0, 255)
-                                display_img = display_img.astype(np.uint8)
-                            display_img = cv2.cvtColor(display_img, cv2.COLOR_GRAY2BGR)
-                        else:
-                            display_img = value.copy()
-                            if display_img.dtype != np.uint8:
-                                display_img = display_img.astype(np.uint8)
+                    # 是圖片，只有新變數才輸出圖片
+                    if key in new_vars:
+                        try:
+                            if value.ndim == 2:
+                                display_img = value.copy()
+                                if display_img.dtype != np.uint8:
+                                    if display_img.max() > 1 or display_img.min() < 0:
+                                        display_img = cv2.normalize(display_img, None, 0, 255, cv2.NORM_MINMAX)
+                                    else:
+                                        display_img = (display_img * 255).clip(0, 255)
+                                    display_img = display_img.astype(np.uint8)
+                                display_img = cv2.cvtColor(display_img, cv2.COLOR_GRAY2BGR)
+                            else:
+                                display_img = value.copy()
+                                if display_img.dtype != np.uint8:
+                                    display_img = display_img.astype(np.uint8)
 
-                        images[key] = f'data:image/png;base64,{image_to_base64(display_img)}'
-                        variables_info[key] = f'ndarray {value.shape} {value.dtype}'
-                    except:
-                        variables_info[key] = f'ndarray {value.shape} {value.dtype}'
+                            images[key] = f'data:image/png;base64,{image_to_base64(display_img)}'
+                        except:
+                            pass
+                    variables_info[key] = f'ndarray {value.shape} {value.dtype}'
                 else:
                     variables_info[key] = f'ndarray {value.shape} {value.dtype}'
             elif isinstance(value, (int, float)):
                 variables_info[key] = f'{type(value).__name__}: {value}'
             elif isinstance(value, str):
-                variables_info[key] = f'str: "{value[:50]}..."' if len(value) > 50 else f'str: "{value}"'
+                # 檢查是否為 base64 圖片字串 (matplotlib 輸出)
+                if key in new_vars and value.startswith('data:image'):
+                    images[key] = value
+                variables_info[key] = f'str len={len(value)}'
             elif isinstance(value, (list, tuple)):
                 variables_info[key] = f'{type(value).__name__} len={len(value)}'
             elif isinstance(value, dict):
