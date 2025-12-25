@@ -4,14 +4,43 @@
 
 {% block extra_head %}
 <style>
+    /* ===== 模式切換 Tab ===== */
+    .mode-tabs {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        padding: 0;
+    }
+    .mode-tabs .nav-link {
+        color: rgba(255,255,255,0.7);
+        border: none;
+        border-radius: 0;
+        padding: 12px 30px;
+        font-weight: bold;
+        font-size: 1rem;
+        transition: all 0.3s;
+    }
+    .mode-tabs .nav-link:hover {
+        color: white;
+        background: rgba(255,255,255,0.1);
+    }
+    .mode-tabs .nav-link.active {
+        color: white;
+        background: rgba(13, 202, 240, 0.3);
+        border-bottom: 3px solid #0dcaf0;
+    }
+    .mode-tabs .nav-link .badge {
+        font-size: 0.65rem;
+        vertical-align: middle;
+        margin-left: 5px;
+    }
+
     .sidebar {
-        height: calc(100vh - 56px);
+        height: calc(100vh - 100px);
         overflow-y: auto;
         background: #f8f9fa;
         border-right: 1px solid #dee2e6;
     }
     .main-content {
-        height: calc(100vh - 56px);
+        height: calc(100vh - 100px);
         overflow-y: auto;
     }
     .effect-btn {
@@ -31,6 +60,10 @@
         background: #0dcaf0;
         color: white;
     }
+    .numpy-btn.active {
+        background: #198754;
+        color: white;
+    }
     .category-header {
         font-weight: bold;
         padding: 10px 16px;
@@ -40,6 +73,9 @@
     }
     .category-header:first-child {
         margin-top: 0;
+    }
+    .numpy-category-header {
+        background: #d1e7dd;
     }
     .image-container {
         min-height: 250px;
@@ -171,19 +207,173 @@
     .pixel-values small {
         font-size: 0.8rem;
     }
+
+    /* ===== NumPy 陣列視覺化 ===== */
+    .array-grid {
+        display: inline-block;
+        border: 2px solid #333;
+        border-radius: 4px;
+        overflow: hidden;
+        font-family: 'Consolas', 'Monaco', monospace;
+    }
+    .array-row {
+        display: flex;
+    }
+    .array-cell {
+        min-width: 40px;
+        height: 36px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #ddd;
+        font-size: 0.75rem;
+        font-weight: 500;
+        transition: all 0.2s;
+        padding: 2px 4px;
+    }
+    .array-cell.highlight {
+        border: 2px solid #dc3545;
+        z-index: 1;
+        position: relative;
+        box-shadow: 0 0 5px rgba(220, 53, 69, 0.5);
+    }
+    .array-cell.selected {
+        background: #ffc107 !important;
+        color: #000 !important;
+        font-weight: bold;
+    }
+    .array-info {
+        font-family: monospace;
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-top: 8px;
+    }
+    .array-container {
+        text-align: center;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 8px;
+        min-height: 200px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+    }
+    .array-label {
+        font-weight: bold;
+        color: #495057;
+        margin-bottom: 10px;
+    }
+    .array-arrow {
+        font-size: 2rem;
+        color: #198754;
+        margin: 0 15px;
+    }
+    .arrays-comparison {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    .scalar-result {
+        font-size: 2rem;
+        font-weight: bold;
+        color: #198754;
+        background: #d1e7dd;
+        padding: 15px 30px;
+        border-radius: 10px;
+        font-family: monospace;
+    }
+    .numpy-description-box {
+        background: linear-gradient(135deg, #198754 0%, #20c997 100%);
+        color: white;
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 15px;
+    }
+    .numpy-params-box {
+        background: #d1e7dd;
+        border: 1px solid #198754;
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 15px;
+    }
+    .numpy-params-box h6 {
+        color: #0f5132;
+        margin-bottom: 15px;
+        font-weight: bold;
+    }
+    .source-toggle {
+        background: #e2e3e5;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 15px;
+    }
+    .source-toggle .btn-check:checked + .btn {
+        background: #198754;
+        color: white;
+    }
+    .requires-image-badge {
+        font-size: 0.65rem;
+        background: #0dcaf0;
+        color: white;
+        padding: 2px 5px;
+        border-radius: 3px;
+        margin-left: 5px;
+    }
+    .list-result {
+        background: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 15px;
+        font-family: monospace;
+        font-size: 0.85rem;
+    }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- 模式切換 Tab -->
+<ul class="nav mode-tabs" id="modeTabs">
+    <li class="nav-item">
+        <button class="nav-link active" data-mode="opencv" id="opencvTab">
+            OpenCV 影像處理
+            <span class="badge bg-info">{{ categories|length }} 類</span>
+        </button>
+    </li>
+    <li class="nav-item">
+        <button class="nav-link" data-mode="numpy" id="numpyTab">
+            NumPy 陣列運算
+            <span class="badge bg-success">{{ numpy_categories|length }} 類</span>
+        </button>
+    </li>
+</ul>
+
 <div class="container-fluid">
     <div class="row">
-        <!-- 左側選單 -->
-        <div class="col-md-3 col-lg-2 p-0 sidebar">
+        <!-- ===== OpenCV 左側選單 ===== -->
+        <div class="col-md-3 col-lg-2 p-0 sidebar" id="opencvSidebar">
             {% for category, effects in categories.items() %}
             <div class="category-header">{{ category }}</div>
             {% for effect in effects %}
-            <button class="effect-btn" data-effect="{{ effect.id }}">
+            <button class="effect-btn opencv-btn" data-effect="{{ effect.id }}">
                 {{ effect.name }}
+            </button>
+            {% endfor %}
+            {% endfor %}
+        </div>
+
+        <!-- ===== NumPy 左側選單 ===== -->
+        <div class="col-md-3 col-lg-2 p-0 sidebar" id="numpySidebar" style="display: none;">
+            {% for category, effects in numpy_categories.items() %}
+            <div class="category-header numpy-category-header">{{ category }}</div>
+            {% for effect in effects %}
+            <button class="effect-btn numpy-btn" data-effect="{{ effect.id }}" data-requires-image="{{ effect.requires_image|lower }}">
+                {{ effect.name }}
+                {% if effect.requires_image %}
+                <span class="requires-image-badge">需圖片</span>
+                {% endif %}
             </button>
             {% endfor %}
             {% endfor %}
@@ -191,6 +381,9 @@
 
         <!-- 主要內容區 -->
         <div class="col-md-9 col-lg-10 main-content p-4">
+
+            <!-- ===== OpenCV 內容區 ===== -->
+            <div id="opencvContent">
             <!-- 上傳區域 -->
             <div id="uploadSection" class="mb-4">
                 <div class="upload-zone" id="uploadZone">
@@ -293,6 +486,98 @@
                     </div>
                 </div>
             </div>
+            </div><!-- /opencvContent -->
+
+            <!-- ===== NumPy 內容區 ===== -->
+            <div id="numpyContent" style="display: none;">
+                <!-- 說明區塊 -->
+                <div class="numpy-description-box" id="numpyDescriptionBox">
+                    <h5 id="numpyDescTitle">NumPy 陣列運算</h5>
+                    <p id="numpyDescText" style="white-space: pre-line;">選擇左側的操作來開始學習 NumPy 的各種功能。
+NumPy 是 Python 科學計算的基礎套件，提供高效的多維陣列操作。</p>
+                </div>
+
+                <div class="row">
+                    <!-- 左側：陣列視覺化 -->
+                    <div class="col-lg-8">
+                        <!-- 輸入來源選擇（僅圖片相關效果顯示） -->
+                        <div class="source-toggle mb-3" id="sourceToggle" style="display: none;">
+                            <div class="btn-group w-100" role="group">
+                                <input type="radio" class="btn-check" name="numpySource" id="sourceSample" value="sample" checked>
+                                <label class="btn btn-outline-secondary" for="sourceSample">使用範例陣列</label>
+                                <input type="radio" class="btn-check" name="numpySource" id="sourceImage" value="image">
+                                <label class="btn btn-outline-secondary" for="sourceImage">使用上傳圖片</label>
+                            </div>
+                        </div>
+
+                        <!-- NumPy 圖片上傳區（需要圖片時顯示） -->
+                        <div id="numpyUploadSection" class="mb-4" style="display: none;">
+                            <div class="upload-zone" id="numpyUploadZone">
+                                <div class="mb-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" fill="currentColor" class="text-success" viewBox="0 0 16 16">
+                                        <path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5z"/>
+                                        <path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708l3-3z"/>
+                                    </svg>
+                                </div>
+                                <h5>上傳圖片以進行 NumPy 操作</h5>
+                                <p class="text-muted small">圖片將作為 NumPy 陣列進行處理</p>
+                                <input type="file" id="numpyFileInput" accept="image/*" style="display: none;">
+                            </div>
+                        </div>
+
+                        <!-- 陣列視覺化區域 -->
+                        <div class="row" id="numpyResultSection">
+                            <!-- 輸入陣列 -->
+                            <div class="col-md-6 mb-3" id="inputArrayCol">
+                                <div class="array-container" id="inputArrayContainer">
+                                    <div class="array-label">輸入陣列</div>
+                                    <div id="inputArrayDisplay">
+                                        <div class="text-muted">選擇操作後顯示</div>
+                                    </div>
+                                    <div class="array-info" id="inputArrayInfo"></div>
+                                </div>
+                            </div>
+
+                            <!-- 輸出陣列 -->
+                            <div class="col-md-6 mb-3" id="outputArrayCol">
+                                <div class="array-container" id="outputArrayContainer">
+                                    <div class="array-label">輸出結果</div>
+                                    <div id="outputArrayDisplay">
+                                        <div class="text-muted">選擇操作後顯示</div>
+                                    </div>
+                                    <div class="array-info" id="outputArrayInfo"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- NumPy 程式碼區域 -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-success text-white py-2 d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 small">Python 程式碼</h6>
+                                <button class="btn btn-sm btn-outline-light py-0" id="copyNumpyCodeBtn">複製</button>
+                            </div>
+                            <div class="card-body code-container p-0">
+                                <pre class="m-0"><code id="numpyCodeBlock" class="python"># 選擇左側的操作來查看程式碼</code></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右側：參數控制 -->
+                    <div class="col-lg-4">
+                        <div class="numpy-params-box">
+                            <h6>參數調整</h6>
+                            <div id="numpyParamsContainer">
+                                <div class="no-params">選擇操作來調整參數</div>
+                            </div>
+                            <hr class="my-3">
+                            <button class="btn btn-success apply-btn" id="numpyApplyBtn">
+                                執行操作
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /numpyContent -->
+
         </div>
     </div>
 </div>
@@ -300,12 +585,22 @@
 
 {% block extra_scripts %}
 <script>
-// 效果資料（從後端載入）
+// ===== 模式控制 =====
+let currentMode = 'opencv';  // 'opencv' or 'numpy'
+
+// ===== OpenCV 相關 =====
 let effectsData = {};
 let currentFilename = null;
 let currentEffect = 'original';
 let currentParams = {};
 
+// ===== NumPy 相關 =====
+let numpyEffectsData = {};
+let numpyFilename = null;
+let currentNumpyEffect = 'array_create';
+let currentNumpyParams = {};
+
+// ===== DOM 元素 - OpenCV =====
 const uploadZone = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
 const uploadSection = document.getElementById('uploadSection');
@@ -317,10 +612,62 @@ const descText = document.getElementById('descText');
 const codeBlock = document.getElementById('codeBlock');
 const loadingSpinner = document.getElementById('loadingSpinner');
 const paramsContainer = document.getElementById('paramsContainer');
-const effectBtns = document.querySelectorAll('.effect-btn');
+const opencvBtns = document.querySelectorAll('.opencv-btn');
 const copyCodeBtn = document.getElementById('copyCodeBtn');
 const resetBtn = document.getElementById('resetBtn');
 const applyBtn = document.getElementById('applyBtn');
+
+// ===== DOM 元素 - 模式切換 =====
+const opencvTab = document.getElementById('opencvTab');
+const numpyTab = document.getElementById('numpyTab');
+const opencvContent = document.getElementById('opencvContent');
+const numpyContent = document.getElementById('numpyContent');
+const opencvSidebar = document.getElementById('opencvSidebar');
+const numpySidebar = document.getElementById('numpySidebar');
+
+// ===== DOM 元素 - NumPy =====
+const numpyBtns = document.querySelectorAll('.numpy-btn');
+const numpyDescTitle = document.getElementById('numpyDescTitle');
+const numpyDescText = document.getElementById('numpyDescText');
+const numpyCodeBlock = document.getElementById('numpyCodeBlock');
+const numpyParamsContainer = document.getElementById('numpyParamsContainer');
+const numpyApplyBtn = document.getElementById('numpyApplyBtn');
+const copyNumpyCodeBtn = document.getElementById('copyNumpyCodeBtn');
+const inputArrayDisplay = document.getElementById('inputArrayDisplay');
+const outputArrayDisplay = document.getElementById('outputArrayDisplay');
+const inputArrayInfo = document.getElementById('inputArrayInfo');
+const outputArrayInfo = document.getElementById('outputArrayInfo');
+const sourceToggle = document.getElementById('sourceToggle');
+const numpyUploadSection = document.getElementById('numpyUploadSection');
+const numpyUploadZone = document.getElementById('numpyUploadZone');
+const numpyFileInput = document.getElementById('numpyFileInput');
+const inputArrayContainer = document.getElementById('inputArrayContainer');
+const outputArrayContainer = document.getElementById('outputArrayContainer');
+
+// ===== 模式切換 =====
+function switchMode(mode) {
+    currentMode = mode;
+
+    // 更新 Tab 狀態
+    opencvTab.classList.toggle('active', mode === 'opencv');
+    numpyTab.classList.toggle('active', mode === 'numpy');
+
+    // 切換側邊欄
+    opencvSidebar.style.display = mode === 'opencv' ? 'block' : 'none';
+    numpySidebar.style.display = mode === 'numpy' ? 'block' : 'none';
+
+    // 切換內容區
+    opencvContent.style.display = mode === 'opencv' ? 'block' : 'none';
+    numpyContent.style.display = mode === 'numpy' ? 'block' : 'none';
+
+    // NumPy 模式初始化
+    if (mode === 'numpy' && !numpyEffectsData.array_create) {
+        loadNumpyEffectsData();
+    }
+}
+
+opencvTab.addEventListener('click', () => switchMode('opencv'));
+numpyTab.addEventListener('click', () => switchMode('numpy'));
 
 // 載入效果資料
 async function loadEffectsData() {
@@ -556,8 +903,8 @@ async function processImage() {
     }
 }
 
-// 效果按鈕點擊
-effectBtns.forEach(btn => {
+// OpenCV 效果按鈕點擊
+opencvBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         selectEffect(btn.dataset.effect);
     });
@@ -681,6 +1028,422 @@ resultImage.addEventListener('mouseleave', () => {
     pixelB.textContent = '-';
     colorPreview.style.backgroundColor = '#ccc';
     extraChannelInfo.innerHTML = '';
+});
+
+// ========================================
+// ===== NumPy 相關函數 =====
+// ========================================
+
+// 載入 NumPy 效果資料
+async function loadNumpyEffectsData() {
+    try {
+        const response = await fetch('{{ url_for("numpy_effects") }}');
+        numpyEffectsData = await response.json();
+        // 自動選擇第一個效果
+        selectNumpyEffect('array_create');
+    } catch (error) {
+        console.error('載入 NumPy 效果資料失敗:', error);
+    }
+}
+
+// 選擇 NumPy 效果
+function selectNumpyEffect(effect) {
+    currentNumpyEffect = effect;
+
+    // 更新按鈕狀態
+    numpyBtns.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.effect === effect);
+    });
+
+    // 更新說明
+    const effectInfo = numpyEffectsData[effect];
+    if (effectInfo) {
+        numpyDescTitle.textContent = effectInfo.name;
+        numpyDescText.textContent = effectInfo.description || '無說明';
+
+        // 檢查是否需要圖片
+        const requiresImage = effectInfo.requires_image || false;
+        sourceToggle.style.display = requiresImage ? 'block' : 'none';
+
+        if (requiresImage) {
+            const source = document.querySelector('input[name="numpySource"]:checked').value;
+            numpyUploadSection.style.display = (source === 'image' && !numpyFilename) ? 'block' : 'none';
+        } else {
+            numpyUploadSection.style.display = 'none';
+        }
+
+        // 渲染參數控制
+        renderNumpyParams(effectInfo.params || []);
+    }
+
+    // 執行操作
+    processNumpyOperation();
+}
+
+// 渲染 NumPy 參數控制項
+function renderNumpyParams(params) {
+    if (!params || params.length === 0) {
+        numpyParamsContainer.innerHTML = '<div class="no-params">此操作沒有可調整的參數</div>';
+        currentNumpyParams = {};
+        return;
+    }
+
+    let html = '';
+    currentNumpyParams = {};
+
+    params.forEach(param => {
+        const paramId = `numpy_param_${param.name}`;
+        currentNumpyParams[param.name] = param.default;
+
+        html += `<div class="param-group">`;
+
+        if (param.type === 'slider') {
+            const step = param.step || 1;
+            const isFloat = step < 1;
+            html += `
+                <div class="param-label">
+                    <span>${param.label}</span>
+                    <span class="param-value" id="${paramId}_value">${param.default}</span>
+                </div>
+                <input type="range" class="form-range" id="${paramId}"
+                    min="${param.min}" max="${param.max}" step="${step}" value="${param.default}"
+                    data-param="${param.name}" data-type="slider" data-float="${isFloat}">
+            `;
+        } else if (param.type === 'select') {
+            html += `
+                <div class="param-label">
+                    <span>${param.label}</span>
+                </div>
+                <select class="form-select form-select-sm" id="${paramId}"
+                    data-param="${param.name}" data-type="select">
+            `;
+            param.options.forEach(opt => {
+                const selected = opt.value === param.default ? 'selected' : '';
+                html += `<option value="${opt.value}" ${selected}>${opt.label}</option>`;
+            });
+            html += '</select>';
+        } else if (param.type === 'checkbox') {
+            const checked = param.default ? 'checked' : '';
+            html += `
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="${paramId}"
+                        data-param="${param.name}" data-type="checkbox" ${checked}>
+                    <label class="form-check-label" for="${paramId}">${param.label}</label>
+                </div>
+            `;
+        }
+
+        html += '</div>';
+    });
+
+    numpyParamsContainer.innerHTML = html;
+
+    // 綁定事件
+    params.forEach(param => {
+        const paramId = `numpy_param_${param.name}`;
+        const element = document.getElementById(paramId);
+
+        if (param.type === 'slider') {
+            const valueDisplay = document.getElementById(`${paramId}_value`);
+            element.addEventListener('input', (e) => {
+                const isFloat = e.target.dataset.float === 'true';
+                const value = isFloat ? parseFloat(e.target.value) : parseInt(e.target.value);
+                valueDisplay.textContent = value;
+                currentNumpyParams[param.name] = value;
+            });
+        } else if (param.type === 'select') {
+            element.addEventListener('change', (e) => {
+                currentNumpyParams[param.name] = e.target.value;
+            });
+        } else if (param.type === 'checkbox') {
+            element.addEventListener('change', (e) => {
+                currentNumpyParams[param.name] = e.target.checked;
+            });
+        }
+    });
+}
+
+// 收集 NumPy 參數
+function collectNumpyParams() {
+    const params = {};
+    const inputs = numpyParamsContainer.querySelectorAll('[data-param]');
+
+    inputs.forEach(input => {
+        const paramName = input.dataset.param;
+        const paramType = input.dataset.type;
+
+        if (paramType === 'slider') {
+            const isFloat = input.dataset.float === 'true';
+            params[paramName] = isFloat ? parseFloat(input.value) : parseInt(input.value);
+        } else if (paramType === 'select') {
+            params[paramName] = input.value;
+        } else if (paramType === 'checkbox') {
+            params[paramName] = input.checked;
+        }
+    });
+
+    return params;
+}
+
+// 處理 NumPy 操作
+async function processNumpyOperation() {
+    const params = collectNumpyParams();
+    const effectInfo = numpyEffectsData[currentNumpyEffect];
+    const requiresImage = effectInfo?.requires_image || false;
+    const source = document.querySelector('input[name="numpySource"]:checked')?.value || 'sample';
+
+    // 需要圖片但沒有上傳
+    if (requiresImage && source === 'image' && !numpyFilename) {
+        inputArrayDisplay.innerHTML = '<div class="text-muted">請先上傳圖片</div>';
+        outputArrayDisplay.innerHTML = '<div class="text-muted">請先上傳圖片</div>';
+        return;
+    }
+
+    try {
+        const response = await fetch('{{ url_for("process_numpy") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                effect: currentNumpyEffect,
+                params: params,
+                source: requiresImage ? source : 'sample',
+                filename: numpyFilename
+            })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // 更新程式碼
+            numpyCodeBlock.textContent = data.code;
+            hljs.highlightElement(numpyCodeBlock);
+
+            // 渲染輸入
+            renderNumpyInput(data);
+
+            // 渲染輸出
+            renderNumpyOutput(data);
+        } else {
+            alert(data.error || '處理失敗');
+        }
+    } catch (error) {
+        console.error('NumPy 處理失敗:', error);
+    }
+}
+
+// 渲染 NumPy 輸入
+function renderNumpyInput(data) {
+    if (data.input_image) {
+        inputArrayDisplay.innerHTML = `<img src="${data.input_image}" style="max-width: 100%; max-height: 200px;">`;
+        inputArrayInfo.textContent = '';
+    } else if (data.input_array) {
+        const arr = data.input_array;
+        inputArrayDisplay.innerHTML = renderArrayGrid(arr.data, data.extra_info?.highlight);
+        inputArrayInfo.textContent = `shape: (${arr.shape.join(', ')})  dtype: ${arr.dtype}`;
+    } else if (data.input_arrays && data.input_arrays.length > 0) {
+        let html = '<div class="arrays-comparison">';
+        data.input_arrays.forEach((arr, i) => {
+            html += `<div>
+                <div class="array-label">${i === 0 ? 'A' : 'B'}</div>
+                ${renderArrayGrid(arr.data)}
+                <div class="array-info">shape: (${arr.shape.join(', ')})</div>
+            </div>`;
+            if (i < data.input_arrays.length - 1) {
+                const symbol = data.extra_info?.operation_symbol || '+';
+                html += `<div class="array-arrow">${symbol}</div>`;
+            }
+        });
+        html += '</div>';
+        inputArrayDisplay.innerHTML = html;
+        inputArrayInfo.textContent = '';
+    } else {
+        inputArrayDisplay.innerHTML = '<div class="text-muted">無輸入陣列</div>';
+        inputArrayInfo.textContent = '';
+    }
+}
+
+// 渲染 NumPy 輸出
+function renderNumpyOutput(data) {
+    if (data.output_image) {
+        outputArrayDisplay.innerHTML = `<img src="${data.output_image}" style="max-width: 100%; max-height: 200px;">`;
+        outputArrayInfo.textContent = '';
+    } else if (data.output_array) {
+        const arr = data.output_array;
+        outputArrayDisplay.innerHTML = renderArrayGrid(arr.data, data.extra_info?.highlight);
+        outputArrayInfo.textContent = `shape: (${arr.shape.join(', ')})  dtype: ${arr.dtype}`;
+    } else if (data.output_scalar !== undefined) {
+        outputArrayDisplay.innerHTML = `<div class="scalar-result">${data.output_scalar}</div>`;
+        outputArrayInfo.textContent = '純量結果';
+    } else if (data.output_list) {
+        if (Array.isArray(data.output_list[0])) {
+            // 多個陣列
+            let html = '<div class="arrays-comparison" style="flex-direction: column; gap: 10px;">';
+            data.output_list.forEach((arr, i) => {
+                html += `<div>
+                    <div class="array-label">部分 ${i + 1}</div>
+                    ${renderArrayGrid(arr)}
+                </div>`;
+            });
+            html += '</div>';
+            outputArrayDisplay.innerHTML = html;
+        } else {
+            // 1D 結果
+            outputArrayDisplay.innerHTML = renderArrayGrid([data.output_list]);
+        }
+        outputArrayInfo.textContent = '';
+    } else if (data.output_dict) {
+        let html = '<div class="list-result">';
+        for (const [key, value] of Object.entries(data.output_dict)) {
+            html += `<div><strong>${key}:</strong> [${Array.isArray(value) ? value.join(', ') : value}]</div>`;
+        }
+        html += '</div>';
+        outputArrayDisplay.innerHTML = html;
+        outputArrayInfo.textContent = '';
+    } else {
+        outputArrayDisplay.innerHTML = '<div class="text-muted">無輸出</div>';
+        outputArrayInfo.textContent = '';
+    }
+}
+
+// 渲染陣列格子圖
+function renderArrayGrid(data, highlights = []) {
+    if (!data || data.length === 0) return '<div class="text-muted">空陣列</div>';
+
+    // 確保是 2D
+    let arr2d = data;
+    if (!Array.isArray(data[0])) {
+        arr2d = [data];  // 1D → 2D
+    }
+
+    // 找出最大最小值來做顏色映射
+    let allValues = arr2d.flat();
+    let numericValues = allValues.filter(v => typeof v === 'number' && !isNaN(v));
+    let minVal = Math.min(...numericValues);
+    let maxVal = Math.max(...numericValues);
+
+    // 高亮位置的集合
+    const highlightSet = new Set(highlights.map(([r, c]) => `${r},${c}`));
+
+    let html = '<div class="array-grid">';
+    arr2d.forEach((row, i) => {
+        html += '<div class="array-row">';
+        row.forEach((cell, j) => {
+            // 計算背景顏色（熱力圖效果）
+            let bgColor = '#f8f9fa';
+            if (typeof cell === 'number' && !isNaN(cell) && maxVal !== minVal) {
+                const ratio = (cell - minVal) / (maxVal - minVal);
+                const hue = (1 - ratio) * 240;  // 藍 → 紅
+                bgColor = `hsl(${hue}, 70%, 80%)`;
+            }
+
+            // 檢查是否高亮
+            const isHighlight = highlightSet.has(`${i},${j}`);
+            const highlightClass = isHighlight ? 'highlight selected' : '';
+
+            // 格式化數值
+            let displayVal = cell;
+            if (typeof cell === 'number') {
+                if (Number.isInteger(cell)) {
+                    displayVal = cell;
+                } else {
+                    displayVal = cell.toFixed(2);
+                }
+            }
+
+            html += `<div class="array-cell ${highlightClass}" style="background: ${bgColor};">${displayVal}</div>`;
+        });
+        html += '</div>';
+    });
+    html += '</div>';
+
+    return html;
+}
+
+// NumPy 效果按鈕點擊
+numpyBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        selectNumpyEffect(btn.dataset.effect);
+    });
+});
+
+// NumPy 套用按鈕
+numpyApplyBtn.addEventListener('click', () => {
+    processNumpyOperation();
+});
+
+// NumPy 複製程式碼
+copyNumpyCodeBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(numpyCodeBlock.textContent).then(() => {
+        copyNumpyCodeBtn.textContent = '已複製!';
+        setTimeout(() => {
+            copyNumpyCodeBtn.textContent = '複製';
+        }, 2000);
+    });
+});
+
+// NumPy 圖片上傳
+numpyUploadZone.addEventListener('click', () => numpyFileInput.click());
+
+numpyUploadZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    numpyUploadZone.classList.add('dragover');
+});
+
+numpyUploadZone.addEventListener('dragleave', () => {
+    numpyUploadZone.classList.remove('dragover');
+});
+
+numpyUploadZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    numpyUploadZone.classList.remove('dragover');
+    if (e.dataTransfer.files.length > 0) {
+        uploadNumpyFile(e.dataTransfer.files[0]);
+    }
+});
+
+numpyFileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        uploadNumpyFile(e.target.files[0]);
+    }
+});
+
+async function uploadNumpyFile(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch('{{ url_for("upload") }}', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            numpyFilename = data.filename;
+            numpyUploadSection.style.display = 'none';
+            processNumpyOperation();
+        } else {
+            alert(data.error || '上傳失敗');
+        }
+    } catch (error) {
+        alert('上傳失敗: ' + error.message);
+    }
+}
+
+// 來源切換
+document.querySelectorAll('input[name="numpySource"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        const requiresImage = numpyEffectsData[currentNumpyEffect]?.requires_image;
+        if (requiresImage) {
+            if (e.target.value === 'image' && !numpyFilename) {
+                numpyUploadSection.style.display = 'block';
+            } else {
+                numpyUploadSection.style.display = 'none';
+                processNumpyOperation();
+            }
+        }
+    });
 });
 
 // 初始化 highlight.js
