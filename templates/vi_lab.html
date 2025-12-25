@@ -1039,12 +1039,35 @@ print(f"植被覆蓋率: {coverage:.2f}%")`,
 import matplotlib
 matplotlib.use('Agg')  # 非互動模式
 import matplotlib.pyplot as plt
+from matplotlib import font_manager
 import io
 import base64
+import os
 
-# 設定中文字型
-plt.rcParams['font.sans-serif'] = ['Microsoft JhengHei', 'SimHei', 'Arial Unicode MS', 'DejaVu Sans']
-plt.rcParams['axes.unicode_minus'] = False
+# 嘗試找到可用的中文字型
+def get_chinese_font():
+    # 常見中文字型列表
+    font_list = [
+        'WenQuanYi Micro Hei',  # Linux (apt install fonts-wqy-microhei)
+        'Noto Sans CJK TC',     # Linux (apt install fonts-noto-cjk)
+        'Microsoft JhengHei',   # Windows
+        'SimHei',               # Windows
+        'PingFang TC',          # macOS
+        'Heiti TC',             # macOS
+    ]
+    available_fonts = [f.name for f in font_manager.fontManager.ttflist]
+    for font in font_list:
+        if font in available_fonts:
+            return font
+    return None
+
+chinese_font = get_chinese_font()
+if chinese_font:
+    plt.rcParams['font.sans-serif'] = [chinese_font]
+    plt.rcParams['axes.unicode_minus'] = False
+    print(f"使用字型: {chinese_font}")
+else:
+    print("警告: 未找到中文字型，標題將顯示英文")
 
 # 取得植被區域的 ExG 值
 vegetation_values = ExG[mask == 255].flatten()
@@ -1052,10 +1075,18 @@ vegetation_values = ExG[mask == 255].flatten()
 # 繪製直方圖
 fig, ax = plt.subplots(figsize=(8, 5))
 ax.hist(vegetation_values, bins=50, color='green', alpha=0.7, edgecolor='darkgreen')
-ax.axvline(x=threshold_value/255, color='red', linestyle='--', linewidth=2, label='Otsu 閾值')
-ax.set_xlabel('ExG 值', fontsize=12)
-ax.set_ylabel('像素數量', fontsize=12)
-ax.set_title(f'植被區域 ExG 分布 (覆蓋率: {coverage:.1f}%)', fontsize=14)
+ax.axvline(x=threshold_value/255, color='red', linestyle='--', linewidth=2,
+           label='Otsu Threshold' if not chinese_font else 'Otsu 閾值')
+
+if chinese_font:
+    ax.set_xlabel('ExG 值', fontsize=12)
+    ax.set_ylabel('像素數量', fontsize=12)
+    ax.set_title(f'植被區域 ExG 分布 (覆蓋率: {coverage:.1f}%)', fontsize=14)
+else:
+    ax.set_xlabel('ExG Value', fontsize=12)
+    ax.set_ylabel('Pixel Count', fontsize=12)
+    ax.set_title(f'Vegetation ExG Distribution (Coverage: {coverage:.1f}%)', fontsize=14)
+
 ax.legend()
 ax.grid(True, alpha=0.3)
 
