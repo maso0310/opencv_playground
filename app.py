@@ -318,6 +318,7 @@ def execute_code():
     code = data.get('code', '')
     session_id = data.get('session_id', 'default')
     cell_id = data.get('cell_id', 0)
+    custom_filename = data.get('custom_filename')  # 自訂上傳圖片檔名
 
     # 初始化 session
     if session_id not in code_sessions:
@@ -328,16 +329,24 @@ def execute_code():
 
     session = code_sessions[session_id]
 
-    # 讀取範例圖片作為 img 變數
+    # 讀取圖片作為 img 變數 (優先使用自訂圖片)
     sample_img = None
-    if os.path.exists(SAMPLE_IMAGE_PATH):
+    if custom_filename:
+        # 使用自訂上傳的圖片
+        custom_path = os.path.join(UPLOAD_FOLDER, custom_filename)
+        if os.path.exists(custom_path):
+            sample_img = cv2.imread(custom_path)
+
+    if sample_img is None and os.path.exists(SAMPLE_IMAGE_PATH):
+        # 使用預設範例圖片
         sample_img = cv2.imread(SAMPLE_IMAGE_PATH)
-        if sample_img is not None:
-            max_size = 500
-            h, w = sample_img.shape[:2]
-            if max(h, w) > max_size:
-                scale = max_size / max(h, w)
-                sample_img = cv2.resize(sample_img, None, fx=scale, fy=scale)
+
+    if sample_img is not None:
+        max_size = 500
+        h, w = sample_img.shape[:2]
+        if max(h, w) > max_size:
+            scale = max_size / max(h, w)
+            sample_img = cv2.resize(sample_img, None, fx=scale, fy=scale)
 
     # 準備輸出捕捉
     output_lines = []

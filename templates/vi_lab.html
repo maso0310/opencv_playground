@@ -243,6 +243,13 @@
             max-height: 200px;
             border-radius: 4px;
             border: 1px solid var(--border-color);
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .output-image-item img:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
         }
 
         .output-image-label {
@@ -250,6 +257,65 @@
             color: var(--accent-blue);
             margin-top: 0.25rem;
             font-family: monospace;
+        }
+
+        /* Image Modal */
+        .image-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+        }
+
+        .image-modal.show {
+            display: flex;
+        }
+
+        .image-modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 8px;
+            box-shadow: 0 10px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        .image-modal-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 2rem;
+            color: white;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .image-modal-close:hover {
+            color: var(--accent-red);
+        }
+
+        /* Upload Button */
+        .btn-upload-custom {
+            background: rgba(139, 233, 253, 0.2);
+            border: 1px dashed var(--accent-blue);
+            color: var(--accent-blue);
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+            width: 100%;
+            margin-top: 0.75rem;
+        }
+
+        .btn-upload-custom:hover {
+            background: rgba(139, 233, 253, 0.3);
+            border-style: solid;
         }
 
         /* Right Panel */
@@ -508,8 +574,12 @@
                     </div>
                     <div class="panel-body">
                         <div class="sample-image-container">
-                            <img id="sampleImage" src="" alt="範例圖片">
+                            <img id="sampleImage" src="" alt="範例圖片" onclick="showImageModal(this.src)" style="cursor: pointer;">
                             <div class="sample-image-info" id="sampleImageInfo">載入中...</div>
+                            <button class="btn-upload-custom" onclick="document.getElementById('customImageInput').click()">
+                                <i class="fas fa-upload me-1"></i>上傳自訂圖片
+                            </button>
+                            <input type="file" id="customImageInput" accept="image/*" style="display: none;" onchange="uploadCustomImage(this)">
                         </div>
                     </div>
                 </div>
@@ -564,6 +634,12 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div class="image-modal" id="imageModal" onclick="hideImageModal()">
+        <span class="image-modal-close" onclick="hideImageModal()">&times;</span>
+        <img id="modalImage" src="" alt="放大圖片">
     </div>
 
     <!-- Scripts -->
@@ -650,13 +726,17 @@ import matplotlib.pyplot as plt
 import io
 import base64
 
+# 設定中文字型
+plt.rcParams['font.sans-serif'] = ['Microsoft JhengHei', 'SimHei', 'Arial Unicode MS', 'DejaVu Sans']
+plt.rcParams['axes.unicode_minus'] = False
+
 # 取得植被區域的 ExG 值
 vegetation_values = ExG[mask == 255].flatten()
 
 # 繪製直方圖
 fig, ax = plt.subplots(figsize=(8, 5))
 ax.hist(vegetation_values, bins=50, color='green', alpha=0.7, edgecolor='darkgreen')
-ax.axvline(x=threshold_value/255, color='red', linestyle='--', linewidth=2, label=f'Otsu 閾值')
+ax.axvline(x=threshold_value/255, color='red', linestyle='--', linewidth=2, label='Otsu 閾值')
 ax.set_xlabel('ExG 值', fontsize=12)
 ax.set_ylabel('像素數量', fontsize=12)
 ax.set_title(f'植被區域 ExG 分布 (覆蓋率: {coverage:.1f}%)', fontsize=14)
@@ -779,14 +859,21 @@ print("直方圖已產生！")`
             loading.classList.add('show');
 
             try {
+                const requestBody = {
+                    code: code,
+                    session_id: sessionId,
+                    cell_id: cellId
+                };
+
+                // 如果有上傳自訂圖片，加入檔名
+                if (customFilename) {
+                    requestBody.custom_filename = customFilename;
+                }
+
                 const response = await fetch('{{ url_for("execute_code") }}', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        code: code,
-                        session_id: sessionId,
-                        cell_id: cellId
-                    })
+                    body: JSON.stringify(requestBody)
                 });
 
                 const data = await response.json();
@@ -813,7 +900,7 @@ print("直方圖已產生！")`
                         for (const [name, src] of Object.entries(data.images)) {
                             outputHtml += `
                                 <div class="output-image-item">
-                                    <img src="${src}" alt="${name}">
+                                    <img src="${src}" alt="${name}" onclick="showImageModal('${src.replace(/'/g, "\\'")}')">
                                     <div class="output-image-label">${name}</div>
                                 </div>
                             `;
@@ -911,6 +998,82 @@ print("直方圖已產生！")`
             const div = document.createElement('div');
             div.textContent = text;
             return div.innerHTML;
+        }
+
+        // Image Modal
+        function showImageModal(src) {
+            const modal = document.getElementById('imageModal');
+            const modalImg = document.getElementById('modalImage');
+            modalImg.src = src;
+            modal.classList.add('show');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function hideImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.remove('show');
+            document.body.style.overflow = '';
+        }
+
+        // ESC key to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                hideImageModal();
+            }
+        });
+
+        // Upload Custom Image
+        let customFilename = null;
+
+        async function uploadCustomImage(input) {
+            if (!input.files || !input.files[0]) return;
+
+            const file = input.files[0];
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const response = await fetch('{{ url_for("upload") }}', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    customFilename = data.filename;
+
+                    // Update sample image display
+                    document.getElementById('sampleImage').src = data.url;
+                    document.getElementById('sampleImageInfo').textContent = '自訂圖片 (已上傳)';
+
+                    // Reset session to use new image
+                    await fetch('{{ url_for("reset_session") }}', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ session_id: sessionId })
+                    });
+
+                    // Clear outputs
+                    document.querySelectorAll('.cell-output').forEach(el => {
+                        el.classList.remove('show');
+                        el.innerHTML = '';
+                    });
+                    document.querySelectorAll('.code-cell').forEach(el => {
+                        el.className = 'code-cell';
+                    });
+                    document.getElementById('variablesList').innerHTML =
+                        '<div class="text-secondary" style="font-size: 0.85rem;">尚未執行程式碼</div>';
+
+                    alert('圖片上傳成功！請重新執行程式碼。');
+                } else {
+                    alert('上傳失敗：' + (data.error || '未知錯誤'));
+                }
+            } catch (error) {
+                alert('上傳失敗：' + error.message);
+            }
+
+            input.value = '';
         }
     </script>
 </body>
