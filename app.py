@@ -22,6 +22,7 @@ from numpy_functions import get_all_numpy_effects, process_numpy_operation
 from pandas_functions import get_all_pandas_effects, process_pandas_operation
 from vi_functions import (get_all_vi_info, process_vi_step, process_vi_full,
                           VEGETATION_INDICES)
+from plotting_all_in_one import get_all_plotting_effects, process_plotting
 
 # 建立 Flask 應用
 real_app = Flask(__name__)
@@ -529,3 +530,55 @@ if __name__ == '__main__':
 
     from werkzeug.serving import run_simple
     run_simple('0.0.0.0', 5000, app, use_reloader=True, use_debugger=True)
+
+# ===== 繪圖模組路由 =====
+
+@real_app.route('/plotting_effects')
+def plotting_effects():
+    """取得所有繪圖效果列表"""
+    return jsonify(get_all_plotting_effects())
+
+
+@real_app.route('/process_plotting', methods=['POST'])
+def process_plotting_route():
+    """處理繪圖操作"""
+    data = request.get_json()
+
+    effect = data.get('effect', '')
+    params = data.get('params', {})
+
+    try:
+        result = process_plotting(effect, params)
+        return jsonify(result)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@real_app.route('/plotting')
+def plotting_page():
+    """繪圖學習頁面"""
+    plotting_effects = get_all_plotting_effects()
+
+    # 按類別和套件分組
+    categories = {}
+    for effect_id, info in plotting_effects.items():
+        library = info.get('library', 'matplotlib')
+        category = info.get('category', '其他')
+
+        if library not in categories:
+            categories[library] = {}
+
+        if category not in categories[library]:
+            categories[library][category] = []
+
+        categories[library][category].append({
+            'id': effect_id,
+            'name': info['name'],
+            'description': info.get('description', '')
+        })
+
+    return render_template('plotting.html', categories=categories)
+
