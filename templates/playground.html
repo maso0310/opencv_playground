@@ -218,6 +218,22 @@
     }
     .array-row {
         display: flex;
+        flex-wrap: nowrap;
+    }
+    .array-grid {
+        display: inline-block;
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: auto;
+        max-height: 300px;
+        padding: 5px;
+    }
+    #inputArrayCol, #outputArrayCol {
+        overflow: hidden;
+    }
+    #inputArrayDisplay, #outputArrayDisplay {
+        width: 100%;
+        overflow: auto;
     }
     .array-cell {
         min-width: 40px;
@@ -230,6 +246,7 @@
         font-weight: 500;
         transition: all 0.2s;
         padding: 2px 4px;
+        flex-shrink: 0;
     }
     .array-cell.highlight {
         border: 2px solid #dc3545;
@@ -254,10 +271,12 @@
         background: #f8f9fa;
         border-radius: 8px;
         min-height: 200px;
+        max-height: 400px;
         display: flex;
         flex-direction: column;
         align-items: center;
-        justify-content: center;
+        justify-content: flex-start;
+        overflow: auto;
     }
     .array-label {
         font-weight: bold;
@@ -275,6 +294,11 @@
         justify-content: center;
         flex-wrap: wrap;
         gap: 15px;
+        max-width: 100%;
+        overflow: auto;
+    }
+    .arrays-comparison > div {
+        flex-shrink: 0;
     }
     .scalar-result {
         font-size: 2rem;
@@ -329,6 +353,64 @@
         padding: 15px;
         font-family: monospace;
         font-size: 0.85rem;
+    }
+
+    /* ===== Pandas 樣式 ===== */
+    .pandas-category-header {
+        background: #fff3cd;
+    }
+    .pandas-description-box {
+        background: linear-gradient(135deg, #ffc107 0%, #fd7e14 100%);
+        color: #212529;
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 15px;
+    }
+    .pandas-params-box {
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 15px;
+    }
+    .pandas-params-box h6 {
+        color: #664d03;
+        margin-bottom: 15px;
+        font-weight: bold;
+    }
+    .pandas-btn.active {
+        background: #ffc107 !important;
+        border-color: #ffc107 !important;
+        color: #212529 !important;
+    }
+    .pandas-table-container {
+        max-height: 500px;
+        overflow: auto;
+    }
+    .pandas-table-container table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.85rem;
+    }
+    .pandas-table-container table th {
+        background: #ffc107;
+        color: #212529;
+        padding: 8px 12px;
+        border: 1px solid #dee2e6;
+        position: sticky;
+        top: 0;
+        font-weight: 600;
+    }
+    .pandas-table-container table td {
+        padding: 6px 12px;
+        border: 1px solid #dee2e6;
+        background: white;
+    }
+    .pandas-table-container table tr:nth-child(even) td {
+        background: #f8f9fa;
+    }
+    .pandas-table-container table tr:hover td {
+        background: #fff3cd;
     }
 
     /* ===== Markdown 內容樣式 ===== */
@@ -440,6 +522,12 @@
             <span class="badge bg-success">{{ numpy_categories|length }} 類</span>
         </button>
     </li>
+    <li class="nav-item">
+        <button class="nav-link" data-mode="pandas" id="pandasTab">
+            Pandas 資料處理
+            <span class="badge bg-warning text-dark">{{ pandas_categories|length }} 類</span>
+        </button>
+    </li>
 </ul>
 
 <div class="container-fluid">
@@ -466,6 +554,18 @@
                 {% if effect.requires_image %}
                 <span class="requires-image-badge">需圖片</span>
                 {% endif %}
+            </button>
+            {% endfor %}
+            {% endfor %}
+        </div>
+
+        <!-- ===== Pandas 左側選單 ===== -->
+        <div class="col-md-3 col-lg-2 p-0 sidebar" id="pandasSidebar" style="display: none;">
+            {% for category, effects in pandas_categories.items() %}
+            <div class="category-header pandas-category-header">{{ category }}</div>
+            {% for effect in effects %}
+            <button class="effect-btn pandas-btn" data-effect="{{ effect.id }}">
+                {{ effect.name }}
             </button>
             {% endfor %}
             {% endfor %}
@@ -687,6 +787,86 @@
                 </div>
             </div><!-- /numpyContent -->
 
+            <!-- ===== Pandas 內容區 ===== -->
+            <div id="pandasContent" style="display: none;">
+                <!-- 說明區塊 -->
+                <div class="pandas-description-box d-flex justify-content-between align-items-center" id="pandasDescriptionBox">
+                    <div>
+                        <h5 class="mb-1" id="pandasDescTitle">Pandas 資料處理</h5>
+                        <p class="mb-0 small opacity-75" id="pandasDescSummary">選擇左側的操作來開始學習資料處理</p>
+                    </div>
+                    <button class="btn btn-light btn-sm" id="showPandasDescModalBtn" data-bs-toggle="modal" data-bs-target="#pandasDescModal">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16" class="me-1">
+                            <path d="M8 15A7 7 0 1 1 8 1a7 7 0 0 1 0 14zm0 1A8 8 0 1 0 8 0a8 8 0 0 0 0 16z"/>
+                            <path d="m8.93 6.588-2.29.287-.082.38.45.083c.294.07.352.176.288.469l-.738 3.468c-.194.897.105 1.319.808 1.319.545 0 1.178-.252 1.465-.598l.088-.416c-.2.176-.492.246-.686.246-.275 0-.375-.193-.304-.533L8.93 6.588zM9 4.5a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                        </svg>
+                        詳細說明
+                    </button>
+                </div>
+
+                <div class="row">
+                    <!-- 左側：DataFrame 顯示區域 -->
+                    <div class="col-lg-8">
+                        <!-- 結果顯示區域 -->
+                        <div class="card mb-3" id="pandasResultSection">
+                            <div class="card-header bg-warning text-dark py-2 d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 small">DataFrame 結果</h6>
+                                <span class="badge bg-dark" id="pandasResultInfo"></span>
+                            </div>
+                            <div class="card-body p-0 pandas-table-container" id="pandasTableContainer">
+                                <div class="text-muted p-4 text-center">選擇左側操作來查看結果</div>
+                            </div>
+                        </div>
+
+                        <!-- Pandas 程式碼區域 -->
+                        <div class="card mb-3">
+                            <div class="card-header bg-warning text-dark py-2 d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0 small">Python 程式碼</h6>
+                                <button class="btn btn-sm btn-outline-dark py-0" id="copyPandasCodeBtn">複製</button>
+                            </div>
+                            <div class="card-body code-container p-0">
+                                <pre class="m-0"><code id="pandasCodeBlock" class="python"># 選擇左側的操作來查看程式碼</code></pre>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右側：參數控制 -->
+                    <div class="col-lg-4">
+                        <div class="pandas-params-box">
+                            <h6>參數調整</h6>
+                            <div id="pandasParamsContainer">
+                                <div class="no-params">選擇操作來調整參數</div>
+                            </div>
+                            <hr class="my-3">
+                            <button class="btn btn-warning apply-btn" id="pandasApplyBtn">
+                                執行操作
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /pandasContent -->
+
+        </div>
+    </div>
+</div>
+
+<!-- Pandas 說明 Modal -->
+<div class="modal fade" id="pandasDescModal" tabindex="-1" aria-labelledby="pandasDescModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="pandasDescModalLabel">Pandas 操作說明</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <h4 id="pandasModalDescTitle">操作名稱</h4>
+                <p class="text-muted" id="pandasModalDescText">操作說明...</p>
+                <h5 class="mt-4">程式碼範例</h5>
+                <pre class="bg-light p-3 rounded"><code id="pandasModalCodeExample" class="python"></code></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">關閉</button>
+            </div>
         </div>
     </div>
 </div>
@@ -747,6 +927,11 @@ let numpyFilename = null;
 let currentNumpyEffect = 'array_create';
 let currentNumpyParams = {};
 
+// ===== Pandas 相關 =====
+let pandasEffectsData = {};
+let currentPandasEffect = 'create_from_dict';
+let currentPandasParams = {};
+
 // ===== DOM 元素 - OpenCV =====
 const uploadZone = document.getElementById('uploadZone');
 const fileInput = document.getElementById('fileInput');
@@ -799,6 +984,25 @@ const outputArrayContainer = document.getElementById('outputArrayContainer');
 const numpyModalDescTitle = document.getElementById('numpyModalDescTitle');
 const numpyModalDescText = document.getElementById('numpyModalDescText');
 
+// ===== DOM 元素 - Pandas =====
+const pandasTab = document.getElementById('pandasTab');
+const pandasContent = document.getElementById('pandasContent');
+const pandasSidebar = document.getElementById('pandasSidebar');
+const pandasBtns = document.querySelectorAll('.pandas-btn');
+const pandasDescTitle = document.getElementById('pandasDescTitle');
+const pandasDescSummary = document.getElementById('pandasDescSummary');
+const pandasCodeBlock = document.getElementById('pandasCodeBlock');
+const pandasParamsContainer = document.getElementById('pandasParamsContainer');
+const pandasApplyBtn = document.getElementById('pandasApplyBtn');
+const copyPandasCodeBtn = document.getElementById('copyPandasCodeBtn');
+const pandasTableContainer = document.getElementById('pandasTableContainer');
+const pandasResultInfo = document.getElementById('pandasResultInfo');
+
+// ===== DOM 元素 - Pandas Modal =====
+const pandasModalDescTitle = document.getElementById('pandasModalDescTitle');
+const pandasModalDescText = document.getElementById('pandasModalDescText');
+const pandasModalCodeExample = document.getElementById('pandasModalCodeExample');
+
 // ===== 模式切換 =====
 function switchMode(mode) {
     currentMode = mode;
@@ -806,23 +1010,32 @@ function switchMode(mode) {
     // 更新 Tab 狀態
     opencvTab.classList.toggle('active', mode === 'opencv');
     numpyTab.classList.toggle('active', mode === 'numpy');
+    pandasTab.classList.toggle('active', mode === 'pandas');
 
     // 切換側邊欄
     opencvSidebar.style.display = mode === 'opencv' ? 'block' : 'none';
     numpySidebar.style.display = mode === 'numpy' ? 'block' : 'none';
+    pandasSidebar.style.display = mode === 'pandas' ? 'block' : 'none';
 
     // 切換內容區
     opencvContent.style.display = mode === 'opencv' ? 'block' : 'none';
     numpyContent.style.display = mode === 'numpy' ? 'block' : 'none';
+    pandasContent.style.display = mode === 'pandas' ? 'block' : 'none';
 
     // NumPy 模式初始化
     if (mode === 'numpy' && !numpyEffectsData.array_create) {
         loadNumpyEffectsData();
     }
+
+    // Pandas 模式初始化
+    if (mode === 'pandas' && Object.keys(pandasEffectsData).length === 0) {
+        loadPandasEffectsData();
+    }
 }
 
 opencvTab.addEventListener('click', () => switchMode('opencv'));
 numpyTab.addEventListener('click', () => switchMode('numpy'));
+pandasTab.addEventListener('click', () => switchMode('pandas'));
 
 // 載入效果資料
 async function loadEffectsData() {
@@ -1691,6 +1904,214 @@ document.querySelectorAll('input[name="numpySource"]').forEach(radio => {
                 processNumpyOperation();
             }
         }
+    });
+});
+
+// ===== Pandas 功能 =====
+
+// 載入 Pandas 效果資料
+async function loadPandasEffectsData() {
+    try {
+        const response = await fetch('{{ url_for("pandas_effects") }}');
+        const data = await response.json();
+        // 將分類資料轉換為效果物件
+        Object.entries(data).forEach(([category, effects]) => {
+            effects.forEach(effect => {
+                pandasEffectsData[effect.id] = {
+                    name: effect.name,
+                    category: category,
+                    description: effect.description,
+                    code_example: effect.code_example,
+                    params: effect.params || []
+                };
+            });
+        });
+    } catch (error) {
+        console.error('載入 Pandas 效果資料失敗:', error);
+    }
+}
+
+// Pandas 效果按鈕點擊
+pandasBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        // 移除其他按鈕的 active 狀態
+        pandasBtns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const effect = btn.dataset.effect;
+        currentPandasEffect = effect;
+
+        // 更新說明區塊
+        const effectData = pandasEffectsData[effect];
+        if (effectData) {
+            pandasDescTitle.textContent = effectData.name;
+            pandasDescSummary.textContent = effectData.description;
+
+            // 更新 Modal 內容
+            pandasModalDescTitle.textContent = effectData.name;
+            pandasModalDescText.textContent = effectData.description;
+            pandasModalCodeExample.textContent = effectData.code_example || '';
+
+            // 更新程式碼顯示
+            pandasCodeBlock.textContent = effectData.code_example || '# 執行操作查看程式碼';
+            hljs.highlightElement(pandasCodeBlock);
+
+            // 建立參數控制
+            buildPandasParams(effectData.params || []);
+        }
+
+        // 執行操作
+        processPandasOperation();
+    });
+});
+
+// 建立 Pandas 參數控制
+function buildPandasParams(params) {
+    if (!params || params.length === 0) {
+        pandasParamsContainer.innerHTML = '<div class="no-params">此操作無可調整參數</div>';
+        currentPandasParams = {};
+        return;
+    }
+
+    let html = '';
+    currentPandasParams = {};
+
+    params.forEach(param => {
+        currentPandasParams[param.name] = param.default;
+
+        if (param.type === 'number') {
+            html += `
+                <div class="mb-3">
+                    <label class="form-label small">${param.label}</label>
+                    <input type="number" class="form-control pandas-param"
+                           data-param="${param.name}"
+                           value="${param.default}"
+                           min="${param.min || 0}"
+                           max="${param.max || 1000}"
+                           step="${param.step || 1}">
+                </div>
+            `;
+        } else if (param.type === 'select') {
+            const options = param.options.map(opt =>
+                `<option value="${opt}" ${opt === param.default ? 'selected' : ''}>${opt}</option>`
+            ).join('');
+            html += `
+                <div class="mb-3">
+                    <label class="form-label small">${param.label}</label>
+                    <select class="form-select pandas-param" data-param="${param.name}">
+                        ${options}
+                    </select>
+                </div>
+            `;
+        } else if (param.type === 'checkbox') {
+            html += `
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input pandas-param"
+                           data-param="${param.name}"
+                           ${param.default ? 'checked' : ''}>
+                    <label class="form-check-label small">${param.label}</label>
+                </div>
+            `;
+        } else if (param.type === 'textarea') {
+            html += `
+                <div class="mb-3">
+                    <label class="form-label small">${param.label}</label>
+                    <textarea class="form-control pandas-param"
+                              data-param="${param.name}"
+                              rows="3">${param.default || ''}</textarea>
+                </div>
+            `;
+        } else {
+            // text
+            html += `
+                <div class="mb-3">
+                    <label class="form-label small">${param.label}</label>
+                    <input type="text" class="form-control pandas-param"
+                           data-param="${param.name}"
+                           value="${param.default || ''}">
+                </div>
+            `;
+        }
+    });
+
+    pandasParamsContainer.innerHTML = html;
+
+    // 綁定參數變更事件
+    document.querySelectorAll('.pandas-param').forEach(input => {
+        input.addEventListener('change', () => {
+            collectPandasParams();
+            processPandasOperation();
+        });
+    });
+}
+
+// 收集 Pandas 參數
+function collectPandasParams() {
+    document.querySelectorAll('.pandas-param').forEach(input => {
+        const paramName = input.dataset.param;
+        if (input.type === 'checkbox') {
+            currentPandasParams[paramName] = input.checked;
+        } else if (input.type === 'number') {
+            currentPandasParams[paramName] = parseFloat(input.value);
+        } else {
+            currentPandasParams[paramName] = input.value;
+        }
+    });
+}
+
+// 執行 Pandas 操作
+async function processPandasOperation() {
+    try {
+        pandasTableContainer.innerHTML = '<div class="text-center p-4"><div class="spinner-border text-warning" role="status"></div><p class="mt-2 text-muted">處理中...</p></div>';
+
+        const response = await fetch('{{ url_for("process_pandas") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                effect: currentPandasEffect,
+                params: currentPandasParams
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            // 顯示表格結果
+            if (result.table_html) {
+                pandasTableContainer.innerHTML = result.table_html;
+            }
+
+            // 更新結果資訊
+            pandasResultInfo.textContent = result.output || '';
+
+            // 更新程式碼（如果有）
+            if (result.code) {
+                pandasCodeBlock.textContent = result.code;
+                hljs.highlightElement(pandasCodeBlock);
+            }
+        } else {
+            pandasTableContainer.innerHTML = `<div class="alert alert-danger m-3">${result.error || '操作失敗'}</div>`;
+        }
+
+    } catch (error) {
+        console.error('Pandas 操作錯誤:', error);
+        pandasTableContainer.innerHTML = `<div class="alert alert-danger m-3">發生錯誤: ${error.message}</div>`;
+    }
+}
+
+// Pandas 執行按鈕
+pandasApplyBtn.addEventListener('click', () => {
+    collectPandasParams();
+    processPandasOperation();
+});
+
+// Pandas 複製程式碼
+copyPandasCodeBtn.addEventListener('click', () => {
+    navigator.clipboard.writeText(pandasCodeBlock.textContent).then(() => {
+        copyPandasCodeBtn.textContent = '已複製！';
+        setTimeout(() => {
+            copyPandasCodeBtn.textContent = '複製';
+        }, 2000);
     });
 });
 

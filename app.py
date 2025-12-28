@@ -19,6 +19,7 @@ from io import BytesIO
 
 from cv_functions import get_all_effects, process_image
 from numpy_functions import get_all_numpy_effects, process_numpy_operation
+from pandas_functions import get_all_pandas_effects, process_pandas_operation
 from vi_functions import (get_all_vi_info, process_vi_step, process_vi_full,
                           VEGETATION_INDICES)
 
@@ -242,6 +243,30 @@ def process_numpy():
         return jsonify({'error': str(e)}), 500
 
 
+@real_app.route('/pandas_effects')
+def pandas_effects():
+    """取得所有 Pandas 效果列表"""
+    return jsonify(get_all_pandas_effects())
+
+
+@real_app.route('/process_pandas', methods=['POST'])
+def process_pandas():
+    """處理 Pandas 操作"""
+    data = request.get_json()
+
+    effect = data.get('effect', 'create_from_dict')
+    params = data.get('params', {})
+
+    try:
+        result = process_pandas_operation(effect, params)
+        return jsonify(result)
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @real_app.route('/playground')
 def playground():
     """操作頁面"""
@@ -267,9 +292,13 @@ def playground():
             'requires_image': info.get('requires_image', False)
         })
 
+    # Pandas 效果
+    pandas_categories = get_all_pandas_effects()
+
     return render_template('playground.html',
                            categories=categories,
-                           numpy_categories=numpy_categories)
+                           numpy_categories=numpy_categories,
+                           pandas_categories=pandas_categories)
 
 
 # ===== 程式實作區 =====
