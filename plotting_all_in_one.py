@@ -11,12 +11,54 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from matplotlib import rcParams
+import matplotlib.font_manager as fm
 import io
 import base64
 
-# 設定中文字型
-rcParams['font.sans-serif'] = ['Microsoft JhengHei', 'Arial Unicode MS', 'sans-serif']
-rcParams['axes.unicode_minus'] = False
+# ========== 智能字體配置 ==========
+
+def detect_chinese_font():
+    """檢測系統可用的中文字體"""
+    # 按優先順序列出可能的中文字體
+    chinese_fonts = [
+        # Windows 字體
+        'Microsoft JhengHei', 'Microsoft YaHei', 'SimHei', 'SimSun',
+        # Linux 字體
+        'WenQuanYi Zen Hei', 'WenQuanYi Micro Hei',
+        'Noto Sans CJK SC', 'Noto Sans CJK TC',
+        'Droid Sans Fallback', 'AR PL UMing CN', 'AR PL UKai CN',
+        # macOS 字體
+        'PingFang SC', 'Heiti TC', 'STHeiti'
+    ]
+
+    # 獲取系統所有可用字體
+    available_fonts = set(f.name for f in fm.fontManager.ttflist)
+
+    # 找到第一個可用的中文字體
+    for font in chinese_fonts:
+        if font in available_fonts:
+            print(f"✓ 使用中文字體: {font}")
+            return font
+
+    print("⚠ 未找到中文字體，將使用英文標籤")
+    return None
+
+# 檢測並設定字體
+CHINESE_FONT = detect_chinese_font()
+USE_CHINESE = CHINESE_FONT is not None
+
+if USE_CHINESE:
+    rcParams['font.sans-serif'] = [CHINESE_FONT, 'DejaVu Sans', 'sans-serif']
+    rcParams['axes.unicode_minus'] = False
+else:
+    # 使用英文友好的字體
+    rcParams['font.sans-serif'] = ['DejaVu Sans', 'Arial', 'sans-serif']
+    rcParams['axes.unicode_minus'] = False
+
+# 雙語標籤函數
+def label(zh, en):
+    """根據字體支援返回中文或英文標籤"""
+    return zh if USE_CHINESE else en
 
 def fig_to_base64(fig):
     """將 matplotlib 圖表轉換為 base64"""
@@ -426,16 +468,17 @@ def _generate_mpl_line(params):
     colors = plt.cm.tab10(np.linspace(0, 1, num_lines))
     for i in range(num_lines):
         y = np.sin(x + i * np.pi/num_lines) + np.random.randn(points) * 0.1
+        line_label = label(f'數據線 {i+1}', f'Line {i+1}')
         if show_markers:
             ax.plot(x, y, color=colors[i], marker='o', markersize=3,
-                   linewidth=2, label=f'數據線 {i+1}', alpha=0.8)
+                   linewidth=2, label=line_label, alpha=0.8)
         else:
             ax.plot(x, y, color=colors[i], linewidth=2,
-                   label=f'數據線 {i+1}', alpha=0.8)
+                   label=line_label, alpha=0.8)
 
-    ax.set_xlabel('X 軸', fontsize=12)
-    ax.set_ylabel('Y 軸', fontsize=12)
-    ax.set_title('Matplotlib 折線圖範例', fontsize=14, fontweight='bold')
+    ax.set_xlabel(label('X 軸', 'X Axis'), fontsize=12)
+    ax.set_ylabel(label('Y 軸', 'Y Axis'), fontsize=12)
+    ax.set_title(label('Matplotlib 折線圖範例', 'Matplotlib Line Chart'), fontsize=14, fontweight='bold')
     ax.legend()
     ax.grid(True, alpha=0.3)
 
@@ -480,12 +523,15 @@ def _generate_mpl_scatter(params):
     # 添加迴歸線
     z = np.polyfit(x, y, 1)
     p = np.poly1d(z)
-    ax.plot(x, p(x), "r--", alpha=0.8, linewidth=2,
-            label=f'迴歸線: y={z[0]:.2f}x+{z[1]:.2f}')
+    reg_label = label(f'迴歸線: y={z[0]:.2f}x+{z[1]:.2f}',
+                      f'Regression: y={z[0]:.2f}x+{z[1]:.2f}')
+    ax.plot(x, p(x), "r--", alpha=0.8, linewidth=2, label=reg_label)
 
-    ax.set_xlabel('X 變數', fontsize=12)
-    ax.set_ylabel('Y 變數', fontsize=12)
-    ax.set_title(f'散點圖 (相關性 ≈ {correlation})', fontsize=14, fontweight='bold')
+    ax.set_xlabel(label('X 變數', 'X Variable'), fontsize=12)
+    ax.set_ylabel(label('Y 變數', 'Y Variable'), fontsize=12)
+    title_text = label(f'散點圖 (相關性 ≈ {correlation})',
+                       f'Scatter Plot (Correlation ≈ {correlation})')
+    ax.set_title(title_text, fontsize=14, fontweight='bold')
     ax.legend()
     ax.grid(True, alpha=0.3)
 
@@ -524,7 +570,7 @@ def _generate_mpl_bar(params):
     num_bars = int(params.get('num_bars', 6))
     orientation = params.get('orientation', 'vertical')
 
-    categories = [f'類別{i+1}' for i in range(num_bars)]
+    categories = [label(f'類別{i+1}', f'Cat{i+1}') for i in range(num_bars)]
     values = np.random.randint(20, 100, num_bars)
 
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -537,7 +583,7 @@ def _generate_mpl_bar(params):
             ax.text(bar.get_x() + bar.get_width()/2., height,
                    f'{int(height)}',
                    ha='center', va='bottom', fontsize=10)
-        ax.set_ylabel('數值', fontsize=12)
+        ax.set_ylabel(label('數值', 'Value'), fontsize=12)
     else:
         bars = ax.barh(categories, values, color='steelblue',
                       edgecolor='black', linewidth=1.2, alpha=0.8)
@@ -546,9 +592,9 @@ def _generate_mpl_bar(params):
             ax.text(width, bar.get_y() + bar.get_height()/2.,
                    f'{int(width)}',
                    ha='left', va='center', fontsize=10)
-        ax.set_xlabel('數值', fontsize=12)
+        ax.set_xlabel(label('數值', 'Value'), fontsize=12)
 
-    ax.set_title('Matplotlib 長條圖範例', fontsize=14, fontweight='bold')
+    ax.set_title(label('Matplotlib 長條圖範例', 'Matplotlib Bar Chart'), fontsize=14, fontweight='bold')
     ax.grid(True, alpha=0.3, axis='y' if orientation == 'vertical' else 'x')
 
     code = f"""import matplotlib.pyplot as plt
@@ -576,7 +622,7 @@ def _generate_mpl_pie(params):
     num_slices = int(params.get('num_slices', 5))
     explode_max = params.get('explode', True)
 
-    labels = [f'類別{i+1}' for i in range(num_slices)]
+    labels = [label(f'類別{i+1}', f'Cat{i+1}') for i in range(num_slices)]
     sizes = np.random.randint(10, 50, num_slices)
 
     explode = [0] * num_slices
@@ -587,7 +633,7 @@ def _generate_mpl_pie(params):
     fig, ax = plt.subplots(figsize=(10, 8))
     ax.pie(sizes, labels=labels, autopct='%1.1f%%',
           startangle=90, explode=explode, shadow=True)
-    ax.set_title('Matplotlib 圓餅圖範例', fontsize=14, fontweight='bold')
+    ax.set_title(label('Matplotlib 圓餅圖範例', 'Matplotlib Pie Chart'), fontsize=14, fontweight='bold')
 
     code = f"""import matplotlib.pyplot as plt
 import numpy as np
@@ -614,19 +660,20 @@ def _generate_mpl_hist(params):
 
     if distribution == 'normal':
         data = np.random.randn(1000)
-        title = '常態分布'
+        title = label('常態分布', 'Normal Distribution')
     elif distribution == 'uniform':
         data = np.random.uniform(-3, 3, 1000)
-        title = '均勻分布'
+        title = label('均勻分布', 'Uniform Distribution')
     else:  # exponential
         data = np.random.exponential(1, 1000)
-        title = '指數分布'
+        title = label('指數分布', 'Exponential Distribution')
 
     fig, ax = plt.subplots(figsize=(10, 6))
     ax.hist(data, bins=bins, color='skyblue', edgecolor='black', alpha=0.7)
-    ax.set_xlabel('數值', fontsize=12)
-    ax.set_ylabel('頻率', fontsize=12)
-    ax.set_title(f'Matplotlib 直方圖 - {title}', fontsize=14, fontweight='bold')
+    ax.set_xlabel(label('數值', 'Value'), fontsize=12)
+    ax.set_ylabel(label('頻率', 'Frequency'), fontsize=12)
+    hist_title = label(f'Matplotlib 直方圖 - {title}', f'Matplotlib Histogram - {title}')
+    ax.set_title(hist_title, fontsize=14, fontweight='bold')
     ax.grid(True, alpha=0.3, axis='y')
 
     code = f"""import matplotlib.pyplot as plt
@@ -655,7 +702,7 @@ def _generate_mpl_subplots(params):
     cols = int(params.get('cols', 2))
 
     fig, axes = plt.subplots(rows, cols, figsize=(12, 8))
-    fig.suptitle('Matplotlib 子圖範例', fontsize=16, fontweight='bold')
+    fig.suptitle(label('Matplotlib 子圖範例', 'Matplotlib Subplots'), fontsize=16, fontweight='bold')
 
     # 確保 axes 是二維陣列
     if rows == 1 and cols == 1:
@@ -673,17 +720,17 @@ def _generate_mpl_subplots(params):
             if plot_type == 'line':
                 x = np.linspace(0, 10, 100)
                 ax.plot(x, np.sin(x + (i*cols+j)))
-                ax.set_title(f'折線圖 ({i+1},{j+1})')
+                ax.set_title(label(f'折線圖 ({i+1},{j+1})', f'Line ({i+1},{j+1})'))
             elif plot_type == 'scatter':
                 x, y = np.random.randn(2, 50)
                 ax.scatter(x, y)
-                ax.set_title(f'散點圖 ({i+1},{j+1})')
+                ax.set_title(label(f'散點圖 ({i+1},{j+1})', f'Scatter ({i+1},{j+1})'))
             elif plot_type == 'bar':
                 ax.bar(range(5), np.random.randint(1, 10, 5))
-                ax.set_title(f'長條圖 ({i+1},{j+1})')
+                ax.set_title(label(f'長條圖 ({i+1},{j+1})', f'Bar ({i+1},{j+1})'))
             else:  # hist
                 ax.hist(np.random.randn(100), bins=20)
-                ax.set_title(f'直方圖 ({i+1},{j+1})')
+                ax.set_title(label(f'直方圖 ({i+1},{j+1})', f'Hist ({i+1},{j+1})'))
 
             ax.grid(True, alpha=0.3)
 
@@ -720,11 +767,11 @@ def _generate_mpl_heatmap(params):
 
     fig, ax = plt.subplots(figsize=(10, 8))
     im = ax.imshow(data, cmap=cmap, aspect='auto')
-    plt.colorbar(im, ax=ax, label='數值')
+    plt.colorbar(im, ax=ax, label=label('數值', 'Value'))
 
-    ax.set_xlabel('X 軸', fontsize=12)
-    ax.set_ylabel('Y 軸', fontsize=12)
-    ax.set_title('Matplotlib 熱力圖範例', fontsize=14, fontweight='bold')
+    ax.set_xlabel(label('X 軸', 'X Axis'), fontsize=12)
+    ax.set_ylabel(label('Y 軸', 'Y Axis'), fontsize=12)
+    ax.set_title(label('Matplotlib 熱力圖範例', 'Matplotlib Heatmap'), fontsize=14, fontweight='bold')
 
     code = f"""import matplotlib.pyplot as plt
 import numpy as np
@@ -762,7 +809,7 @@ def _generate_mpl_3d(params):
         Z = np.sin(np.sqrt(X**2 + Y**2))
         surf = ax.plot_surface(X, Y, Z, cmap='viridis', alpha=0.8)
         fig.colorbar(surf, ax=ax, shrink=0.5)
-        ax.set_title('3D 曲面圖')
+        ax.set_title(label('3D 曲面圖', '3D Surface Plot'))
 
     elif plot_type == 'wireframe':
         X = np.linspace(-5, 5, 30)
@@ -770,7 +817,7 @@ def _generate_mpl_3d(params):
         X, Y = np.meshgrid(X, Y)
         Z = np.sin(np.sqrt(X**2 + Y**2))
         ax.plot_wireframe(X, Y, Z, color='blue', alpha=0.6)
-        ax.set_title('3D 線框圖')
+        ax.set_title(label('3D 線框圖', '3D Wireframe Plot'))
 
     else:  # scatter
         n = 200
@@ -779,11 +826,11 @@ def _generate_mpl_3d(params):
         z = np.random.randn(n)
         colors = np.sqrt(x**2 + y**2 + z**2)
         ax.scatter(x, y, z, c=colors, cmap='viridis', s=50)
-        ax.set_title('3D 散點圖')
+        ax.set_title(label('3D 散點圖', '3D Scatter Plot'))
 
-    ax.set_xlabel('X 軸')
-    ax.set_ylabel('Y 軸')
-    ax.set_zlabel('Z 軸')
+    ax.set_xlabel(label('X 軸', 'X Axis'))
+    ax.set_ylabel(label('Y 軸', 'Y Axis'))
+    ax.set_zlabel(label('Z 軸', 'Z Axis'))
 
     code = f"""import matplotlib.pyplot as plt
 import numpy as np
@@ -825,16 +872,16 @@ def _generate_sns_dist(params):
 
         if plot_type == 'hist':
             sns.histplot(data, kde=True, ax=ax)
-            title = 'Seaborn 直方圖 + KDE'
+            title = label('Seaborn 直方圖 + KDE', 'Seaborn Histogram + KDE')
         elif plot_type == 'kde':
             sns.kdeplot(data, fill=True, ax=ax)
-            title = 'Seaborn 核密度估計'
+            title = label('Seaborn 核密度估計', 'Seaborn KDE Plot')
         elif plot_type == 'box':
             sns.boxplot(x=data, ax=ax)
-            title = 'Seaborn 盒鬚圖'
+            title = label('Seaborn 盒鬚圖', 'Seaborn Box Plot')
         else:  # violin
             sns.violinplot(x=data, ax=ax)
-            title = 'Seaborn 小提琴圖'
+            title = label('Seaborn 小提琴圖', 'Seaborn Violin Plot')
 
         ax.set_title(title, fontsize=14, fontweight='bold')
 
@@ -875,9 +922,11 @@ def _generate_sns_regression(params):
 
         fig, ax = plt.subplots(figsize=(10, 6))
         sns.regplot(x=x, y=y, order=order, ax=ax)
-        ax.set_title(f'Seaborn 迴歸圖 (多項式階數={order})', fontsize=14, fontweight='bold')
-        ax.set_xlabel('X 變數')
-        ax.set_ylabel('Y 變數')
+        title_text = label(f'Seaborn 迴歸圖 (多項式階數={order})',
+                          f'Seaborn Regression (Polynomial Order={order})')
+        ax.set_title(title_text, fontsize=14, fontweight='bold')
+        ax.set_xlabel(label('X 變數', 'X Variable'))
+        ax.set_ylabel(label('Y 變數', 'Y Variable'))
 
         code = f"""import seaborn as sns
 import numpy as np
@@ -914,13 +963,14 @@ def _generate_sns_heatmap(params):
 
         # 生成相關性矩陣
         data = np.random.randn(10, 10)
-        df = pd.DataFrame(data, columns=[f'變數{i+1}' for i in range(10)])
+        col_prefix = label('變數', 'Var')
+        df = pd.DataFrame(data, columns=[f'{col_prefix}{i+1}' for i in range(10)])
         corr = df.corr()
 
         fig, ax = plt.subplots(figsize=(10, 8))
         sns.heatmap(corr, annot=annot, cmap='coolwarm', center=0,
                    square=True, linewidths=1, cbar_kws={"shrink": 0.8}, ax=ax)
-        ax.set_title('Seaborn 相關性熱力圖', fontsize=14, fontweight='bold')
+        ax.set_title(label('Seaborn 相關性熱力圖', 'Seaborn Correlation Heatmap'), fontsize=14, fontweight='bold')
 
         code = f"""import seaborn as sns
 import pandas as pd
@@ -962,13 +1012,13 @@ def _generate_plotly_line(params):
         x = np.linspace(0, 10, 100)
         for i in range(num_lines):
             y = np.sin(x + i * np.pi/num_lines) + np.random.randn(100) * 0.1
-            fig.add_trace(go.Scatter(x=x, y=y, mode='lines',
-                                    name=f'數據線 {i+1}'))
+            line_name = label(f'數據線 {i+1}', f'Line {i+1}')
+            fig.add_trace(go.Scatter(x=x, y=y, mode='lines', name=line_name))
 
         fig.update_layout(
-            title='Plotly 互動式折線圖',
-            xaxis_title='X 軸',
-            yaxis_title='Y 軸',
+            title=label('Plotly 互動式折線圖', 'Plotly Interactive Line Chart'),
+            xaxis_title=label('X 軸', 'X Axis'),
+            yaxis_title=label('Y 軸', 'Y Axis'),
             hovermode='x unified'
         )
 
@@ -1020,11 +1070,11 @@ def _generate_plotly_3d(params):
         fig = go.Figure(data=[go.Surface(z=Z, x=X, y=Y, colorscale='Viridis')])
 
         fig.update_layout(
-            title='Plotly 3D曲面圖',
+            title=label('Plotly 3D曲面圖', 'Plotly 3D Surface Plot'),
             scene=dict(
-                xaxis_title='X 軸',
-                yaxis_title='Y 軸',
-                zaxis_title='Z 軸'
+                xaxis_title=label('X 軸', 'X Axis'),
+                yaxis_title=label('Y 軸', 'Y Axis'),
+                zaxis_title=label('Z 軸', 'Z Axis')
             ),
             autosize=False,
             width=800,
