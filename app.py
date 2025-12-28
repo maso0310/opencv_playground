@@ -296,10 +296,25 @@ def playground():
     # Pandas 效果
     pandas_categories = get_all_pandas_effects()
 
+    # Matplotlib/繪圖效果
+    plotting_effects = get_all_plotting_effects()
+    plotting_categories = {}
+    for effect_id, info in plotting_effects.items():
+        cat = info['category']
+        if cat not in plotting_categories:
+            plotting_categories[cat] = []
+        plotting_categories[cat].append({
+            'id': effect_id,
+            'name': info['name'],
+            'description': info.get('description', ''),
+            'library': info.get('library', 'matplotlib')
+        })
+
     return render_template('playground.html',
                            categories=categories,
                            numpy_categories=numpy_categories,
-                           pandas_categories=pandas_categories)
+                           pandas_categories=pandas_categories,
+                           plotting_categories=plotting_categories)
 
 
 # ===== 程式實作區 =====
@@ -557,28 +572,10 @@ def process_plotting_route():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+# 繪圖功能已整合到 /playground 路由中
+# 如果直接訪問 /plotting，重定向到主頁面
 @real_app.route('/plotting')
-def plotting_page():
-    """繪圖學習頁面"""
-    plotting_effects = get_all_plotting_effects()
-
-    # 按類別和套件分組
-    categories = {}
-    for effect_id, info in plotting_effects.items():
-        library = info.get('library', 'matplotlib')
-        category = info.get('category', '其他')
-
-        if library not in categories:
-            categories[library] = {}
-
-        if category not in categories[library]:
-            categories[library][category] = []
-
-        categories[library][category].append({
-            'id': effect_id,
-            'name': info['name'],
-            'description': info.get('description', '')
-        })
-
-    return render_template('plotting.html', categories=categories)
+def plotting_redirect():
+    """重定向到主要的 playground 頁面"""
+    return redirect(url_for('playground'))
 

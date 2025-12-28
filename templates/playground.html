@@ -528,6 +528,12 @@
             <span class="badge bg-warning text-dark">{{ pandas_categories|length }} 類</span>
         </button>
     </li>
+    <li class="nav-item">
+        <button class="nav-link" data-mode="plotting" id="plottingTab">
+            📊 Matplotlib 繪圖
+            <span class="badge bg-danger">{{ plotting_categories|length }} 類</span>
+        </button>
+    </li>
 </ul>
 
 <div class="container-fluid">
@@ -565,6 +571,23 @@
             <div class="category-header pandas-category-header">{{ category }}</div>
             {% for effect in effects %}
             <button class="effect-btn pandas-btn" data-effect="{{ effect.id }}">
+                {{ effect.name }}
+            </button>
+            {% endfor %}
+            {% endfor %}
+        </div>
+
+        <!-- ===== Matplotlib/繪圖 左側選單 ===== -->
+        <div class="col-md-3 col-lg-2 p-0 sidebar" id="plottingSidebar" style="display: none;">
+            {% for category, effects in plotting_categories.items() %}
+            <div class="category-header" style="background: linear-gradient(135deg, #d63031 0%, #e17055 100%); color: white;">
+                {{ category }}
+            </div>
+            {% for effect in effects %}
+            <button class="effect-btn plotting-btn" data-effect="{{ effect.id }}" data-library="{{ effect.library }}">
+                <span class="badge badge-sm" style="background: {% if effect.library == 'matplotlib' %}#3498db{% elif effect.library == 'seaborn' %}#2ecc71{% else %}#9b59b6{% endif %};">
+                    {{ effect.library }}
+                </span>
                 {{ effect.name }}
             </button>
             {% endfor %}
@@ -846,6 +869,64 @@
                 </div>
             </div><!-- /pandasContent -->
 
+            <!-- ===== Matplotlib/繪圖 內容區 ===== -->
+            <div id="plottingContent" style="display: none;">
+                <div class="alert alert-info">
+                    <h5><i class="bi bi-bar-chart-fill"></i> Python 繪圖學習</h5>
+                    <p class="mb-0">從左側選單選擇圖表類型，系統會自動生成範例程式碼和可視化結果。</p>
+                    <p class="mb-0 small mt-2">
+                        <span class="badge" style="background: #3498db;">Matplotlib</span> 基礎繪圖庫 |
+                        <span class="badge" style="background: #2ecc71;">Seaborn</span> 統計圖表 |
+                        <span class="badge" style="background: #9b59b6;">Plotly</span> 互動式圖表
+                    </p>
+                </div>
+
+                <!-- 圖表顯示區 -->
+                <div id="plottingResult" style="display: none;">
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <div>
+                                <h5 class="mb-1" id="plottingTitle">圖表標題</h5>
+                                <p class="mb-0 small text-muted" id="plottingLibrary">套件: matplotlib</p>
+                            </div>
+                            <button class="btn btn-sm btn-outline-info" id="showPlottingDesc">
+                                <i class="bi bi-info-circle"></i> 詳細說明
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <!-- 參數控制區 -->
+                            <div id="plottingParams" class="mb-3"></div>
+
+                            <!-- 圖表圖片 -->
+                            <div id="plottingImageContainer" class="text-center mb-3">
+                                <img id="plottingImage" class="img-fluid" style="max-width: 100%; border: 1px solid #dee2e6; border-radius: 8px;">
+                            </div>
+
+                            <!-- 互動式圖表容器 (Plotly) -->
+                            <div id="plottingInteractive" style="display: none;"></div>
+
+                            <!-- 程式碼區 -->
+                            <div class="mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6>📝 範例程式碼</h6>
+                                    <button class="btn btn-sm btn-outline-secondary" id="copyPlottingCode">
+                                        <i class="bi bi-clipboard"></i> 複製程式碼
+                                    </button>
+                                </div>
+                                <pre class="code-block"><code id="plottingCode" class="language-python"></code></pre>
+                            </div>
+
+                            <!-- 執行按鈕 -->
+                            <div class="text-center">
+                                <button class="btn btn-success btn-lg" id="runPlottingBtn">
+                                    <i class="bi bi-play-fill"></i> 重新生成圖表
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div><!-- /plottingContent -->
+
         </div>
     </div>
 </div>
@@ -1011,16 +1092,22 @@ function switchMode(mode) {
     opencvTab.classList.toggle('active', mode === 'opencv');
     numpyTab.classList.toggle('active', mode === 'numpy');
     pandasTab.classList.toggle('active', mode === 'pandas');
+    const plottingTab = document.getElementById('plottingTab');
+    if (plottingTab) plottingTab.classList.toggle('active', mode === 'plotting');
 
     // 切換側邊欄
     opencvSidebar.style.display = mode === 'opencv' ? 'block' : 'none';
     numpySidebar.style.display = mode === 'numpy' ? 'block' : 'none';
     pandasSidebar.style.display = mode === 'pandas' ? 'block' : 'none';
+    const plottingSidebar = document.getElementById('plottingSidebar');
+    if (plottingSidebar) plottingSidebar.style.display = mode === 'plotting' ? 'block' : 'none';
 
     // 切換內容區
     opencvContent.style.display = mode === 'opencv' ? 'block' : 'none';
     numpyContent.style.display = mode === 'numpy' ? 'block' : 'none';
     pandasContent.style.display = mode === 'pandas' ? 'block' : 'none';
+    const plottingContent = document.getElementById('plottingContent');
+    if (plottingContent) plottingContent.style.display = mode === 'plotting' ? 'block' : 'none';
 
     // NumPy 模式初始化
     if (mode === 'numpy' && !numpyEffectsData.array_create) {
@@ -1031,11 +1118,18 @@ function switchMode(mode) {
     if (mode === 'pandas' && Object.keys(pandasEffectsData).length === 0) {
         loadPandasEffectsData();
     }
+
+    // Plotting 模式初始化
+    if (mode === 'plotting' && !window.plottingEffectsData) {
+        loadPlottingEffectsData();
+    }
 }
 
 opencvTab.addEventListener('click', () => switchMode('opencv'));
 numpyTab.addEventListener('click', () => switchMode('numpy'));
 pandasTab.addEventListener('click', () => switchMode('pandas'));
+const plottingTab = document.getElementById('plottingTab');
+if (plottingTab) plottingTab.addEventListener('click', () => switchMode('plotting'));
 
 // 載入效果資料
 async function loadEffectsData() {
@@ -2114,6 +2208,134 @@ copyPandasCodeBtn.addEventListener('click', () => {
         }, 2000);
     });
 });
+
+// ===== Matplotlib/繪圖功能 =====
+window.plottingEffectsData = null;
+let currentPlottingEffect = null;
+let currentPlottingParams = {};
+
+async function loadPlottingEffectsData() {
+    try {
+        const response = await fetch('{{ url_for("plotting_effects") }}');
+        window.plottingEffectsData = await response.json();
+    } catch (error) {
+        console.error('載入繪圖效果失敗:', error);
+    }
+}
+
+document.addEventListener('click', async (e) => {
+    if (e.target.classList.contains('plotting-btn') || e.target.closest('.plotting-btn')) {
+        const btn = e.target.classList.contains('plotting-btn') ? e.target : e.target.closest('.plotting-btn');
+        const effectId = btn.dataset.effect;
+        currentPlottingEffect = effectId;
+
+        if (!window.plottingEffectsData) await loadPlottingEffectsData();
+
+        const effectInfo = window.plottingEffectsData[effectId];
+        if (!effectInfo) return;
+
+        document.getElementById('plottingTitle').textContent = effectInfo.name;
+        document.getElementById('plottingLibrary').textContent = `套件: ${effectInfo.library || 'matplotlib'}`;
+
+        const paramsContainer = document.getElementById('plottingParams');
+        paramsContainer.innerHTML = '';
+        currentPlottingParams = {};
+
+        if (effectInfo.params && effectInfo.params.length > 0) {
+            effectInfo.params.forEach(param => {
+                const paramDiv = document.createElement('div');
+                paramDiv.className = 'mb-3';
+
+                if (param.type === 'slider') {
+                    paramDiv.innerHTML = `<label class="form-label">${param.label}: <span id="${param.name}_value">${param.default}</span></label>
+                    <input type="range" class="form-range" id="${param.name}" min="${param.min}" max="${param.max}" step="${param.step || 1}" value="${param.default}" data-param="${param.name}">`;
+                    currentPlottingParams[param.name] = param.default;
+                } else if (param.type === 'select') {
+                    let options = param.options.map(opt => `<option value="${opt.value}" ${opt.value === param.default ? 'selected' : ''}>${opt.label}</option>`).join('');
+                    paramDiv.innerHTML = `<label class="form-label">${param.label}</label><select class="form-select" id="${param.name}" data-param="${param.name}">${options}</select>`;
+                    currentPlottingParams[param.name] = param.default;
+                } else if (param.type === 'checkbox') {
+                    paramDiv.innerHTML = `<div class="form-check"><input class="form-check-input" type="checkbox" id="${param.name}" ${param.default ? 'checked' : ''} data-param="${param.name}"><label class="form-check-label" for="${param.name}">${param.label}</label></div>`;
+                    currentPlottingParams[param.name] = param.default;
+                }
+
+                paramsContainer.appendChild(paramDiv);
+            });
+
+            paramsContainer.querySelectorAll('[data-param]').forEach(elem => {
+                elem.addEventListener('change', () => {
+                    const paramName = elem.dataset.param;
+                    if (elem.type === 'checkbox') {
+                        currentPlottingParams[paramName] = elem.checked;
+                    } else if (elem.type === 'range') {
+                        currentPlottingParams[paramName] = parseFloat(elem.value);
+                        document.getElementById(`${paramName}_value`).textContent = elem.value;
+                    } else {
+                        currentPlottingParams[paramName] = elem.value;
+                    }
+                });
+            });
+        }
+
+        document.getElementById('plottingResult').style.display = 'block';
+        processPlotting();
+    }
+});
+
+async function processPlotting() {
+    if (!currentPlottingEffect) return;
+
+    try {
+        const response = await fetch('{{ url_for("process_plotting_route") }}', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                effect: currentPlottingEffect,
+                params: currentPlottingParams
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            if (result.is_interactive && result.html) {
+                document.getElementById('plottingImageContainer').style.display = 'none';
+                const interactiveDiv = document.getElementById('plottingInteractive');
+                interactiveDiv.style.display = 'block';
+                interactiveDiv.innerHTML = result.html;
+            } else if (result.image) {
+                document.getElementById('plottingInteractive').style.display = 'none';
+                document.getElementById('plottingImageContainer').style.display = 'block';
+                document.getElementById('plottingImage').src = result.image;
+            }
+
+            const codeBlock = document.getElementById('plottingCode');
+            codeBlock.textContent = result.code || '';
+            hljs.highlightElement(codeBlock);
+        } else {
+            alert('生成失敗: ' + (result.error || '未知錯誤'));
+        }
+    } catch (error) {
+        console.error('繪圖錯誤:', error);
+        alert('發生錯誤: ' + error.message);
+    }
+}
+
+const runPlottingBtn = document.getElementById('runPlottingBtn');
+if (runPlottingBtn) runPlottingBtn.addEventListener('click', processPlotting);
+
+const copyPlottingCodeBtn = document.getElementById('copyPlottingCode');
+if (copyPlottingCodeBtn) {
+    copyPlottingCodeBtn.addEventListener('click', () => {
+        const code = document.getElementById('plottingCode').textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            copyPlottingCodeBtn.innerHTML = '<i class="bi bi-check"></i> 已複製！';
+            setTimeout(() => {
+                copyPlottingCodeBtn.innerHTML = '<i class="bi bi-clipboard"></i> 複製程式碼';
+            }, 2000);
+        });
+    });
+}
 
 // 初始化 highlight.js
 hljs.highlightAll();
