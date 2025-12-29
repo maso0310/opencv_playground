@@ -466,6 +466,155 @@ decrypted = cv2.bitwise_xor(encrypted, key)
                  ], 'default': 'both'}
             ]
         },
+        'draw_shapes': {
+            'name': '繪製基本圖形',
+            'category': '基礎',
+            'description': '''OpenCV 提供了一系列函數用於在影像上繪製基本圖形，是影像標註、視覺化的基礎。
+
+## 核心繪圖函數
+
+| 函數 | 功能 | 語法範例 |
+|------|------|----------|
+| `cv2.line()` | 繪製直線 | `cv2.line(img, pt1, pt2, color, thickness)` |
+| `cv2.circle()` | 繪製圓形 | `cv2.circle(img, center, radius, color, thickness)` |
+| `cv2.rectangle()` | 繪製矩形 | `cv2.rectangle(img, pt1, pt2, color, thickness)` |
+| `cv2.ellipse()` | 繪製橢圓 | `cv2.ellipse(img, center, axes, angle, 0, 360, color, thickness)` |
+| `cv2.polylines()` | 繪製多邊形 | `cv2.polylines(img, [pts], isClosed, color, thickness)` |
+| `cv2.putText()` | 繪製文字 | `cv2.putText(img, text, org, font, fontScale, color, thickness)` |
+
+## 基本範例
+
+```python
+import cv2
+import numpy as np
+
+# 建立白色畫布
+img = np.ones((500, 700, 3), dtype=np.uint8) * 255
+
+# 1. 繪製直線（對角線）
+cv2.line(img, (50, 50), (650, 450), (255, 0, 0), 3)
+
+# 2. 繪製矩形
+cv2.rectangle(img, (100, 100), (300, 250), (0, 255, 0), 2)
+
+# 3. 繪製圓形
+cv2.circle(img, (200, 350), 50, (0, 0, 255), -1)  # -1 表示填滿
+
+# 4. 繪製橢圓
+cv2.ellipse(img, (500, 150), (100, 50), 0, 0, 360, (255, 165, 0), 2)
+
+# 5. 繪製多邊形（五角星）
+pts = np.array([[400,350], [450,380], [480,340], [450,300], [400,320]], np.int32)
+cv2.polylines(img, [pts], True, (255, 0, 255), 2)
+
+# 6. 繪製文字
+cv2.putText(img, 'OpenCV Shapes', (50, 470),
+            cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
+```
+
+## 重要參數說明
+
+### 顏色 (color)
+- 格式：`(B, G, R)` 元組
+- 範圍：每個通道 0-255
+- 常用顏色：
+  - 紅色：`(0, 0, 255)`
+  - 綠色：`(0, 255, 0)`
+  - 藍色：`(255, 0, 0)`
+  - 黑色：`(0, 0, 0)`
+  - 白色：`(255, 255, 255)`
+
+### 線條粗細 (thickness)
+- 正整數：線條粗細（像素）
+- `-1`：填滿圖形（適用於圓形、矩形、橢圓）
+
+### 座標系統
+- 原點 `(0, 0)` 在**左上角**
+- X 軸向右，Y 軸向下
+- 格式：`(x, y)` 元組
+
+## 實際應用
+
+### 1. 物件標註（物件偵測結果）
+```python
+# YOLO 偵測結果標註
+for (x, y, w, h, label, conf) in detections:
+    # 繪製邊界框
+    cv2.rectangle(img, (x, y), (x+w, y+h), (0, 255, 0), 2)
+
+    # 標註類別和信心度
+    text = f'{label}: {conf:.2f}'
+    cv2.putText(img, text, (x, y-10),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+```
+
+### 2. 農業應用：果實計數視覺化
+```python
+# 偵測到的果實標記
+for i, (cx, cy, radius) in enumerate(fruits):
+    # 繪製圓形標記
+    cv2.circle(img, (cx, cy), radius, (0, 255, 0), 2)
+
+    # 標註編號
+    cv2.putText(img, str(i+1), (cx-10, cy+5),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+# 顯示總數
+cv2.putText(img, f'Total: {len(fruits)}', (10, 30),
+            cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 0, 0), 2)
+```
+
+### 3. ROI（感興趣區域）標記
+```python
+# 標記田區範圍
+roi_points = np.array([[100,100], [400,100], [450,300], [50,300]])
+cv2.polylines(img, [roi_points], True, (255, 0, 0), 3)
+cv2.putText(img, 'Field A', (200, 200),
+            cv2.FONT_HERSHEY_SIMPLEX, 1.5, (255, 0, 0), 3)
+```
+
+## 進階技巧
+
+### 半透明繪圖
+```python
+# 建立遮罩圖層
+overlay = img.copy()
+cv2.rectangle(overlay, (100, 100), (300, 300), (0, 255, 0), -1)
+
+# 混合（alpha=0.3 表示 30% 不透明度）
+cv2.addWeighted(overlay, 0.3, img, 0.7, 0, img)
+```
+
+### 文字換行與對齊
+```python
+def draw_text_multiline(img, text_lines, org, font, font_scale, color, thickness, line_spacing=10):
+    y = org[1]
+    for line in text_lines:
+        cv2.putText(img, line, (org[0], y), font, font_scale, color, thickness)
+        y += int(font_scale * 30) + line_spacing  # 行距
+```
+
+> **提示**：繪圖函數會**直接修改原始影像**，如果需要保留原圖，請先使用 `img.copy()` 複製！
+''',
+            'params': [
+                {'name': 'bg_color', 'label': '背景顏色', 'type': 'select',
+                 'options': [
+                     {'value': 'white', 'label': '白色'},
+                     {'value': 'black', 'label': '黑色'},
+                     {'value': 'gray', 'label': '灰色'},
+                     {'value': 'original', 'label': '使用原圖'}
+                 ], 'default': 'white'},
+                {'name': 'show_line', 'label': '顯示直線', 'type': 'checkbox', 'default': True},
+                {'name': 'show_rect', 'label': '顯示矩形', 'type': 'checkbox', 'default': True},
+                {'name': 'show_circle', 'label': '顯示圓形', 'type': 'checkbox', 'default': True},
+                {'name': 'show_ellipse', 'label': '顯示橢圓', 'type': 'checkbox', 'default': True},
+                {'name': 'show_polygon', 'label': '顯示多邊形', 'type': 'checkbox', 'default': True},
+                {'name': 'show_text', 'label': '顯示文字', 'type': 'checkbox', 'default': True},
+                {'name': 'thickness', 'label': '線條粗細', 'type': 'slider',
+                 'min': 1, 'max': 10, 'step': 1, 'default': 2}
+            ],
+            'requires_image': False  # 不需要上傳圖片，會自動生成畫布
+        },
 
         # ===== 色彩 =====
         'color_space': {
@@ -2095,6 +2244,193 @@ decrypted = cv2.bitwise_xor(encrypted, key)
 # 金鑰:       00110010 (50)
 # 加密結果:   11111010 (250) = 200 XOR 50
 # 解密:       11111010 XOR 00110010 = 11001000 (200) 還原了！'''
+    return result, code
+
+
+def process_draw_shapes(img, params):
+    """繪製基本圖形示範"""
+    bg_color = params.get('bg_color', 'white')
+    show_line = params.get('show_line', True)
+    show_rect = params.get('show_rect', True)
+    show_circle = params.get('show_circle', True)
+    show_ellipse = params.get('show_ellipse', True)
+    show_polygon = params.get('show_polygon', True)
+    show_text = params.get('show_text', True)
+    thickness = int(params.get('thickness', 2))
+
+    # 建立畫布
+    if bg_color == 'original' and img is not None:
+        # 使用原圖作為背景
+        result = img.copy()
+        h, w = result.shape[:2]
+    else:
+        # 建立空白畫布 (700x500)
+        h, w = 500, 700
+        if bg_color == 'white':
+            result = np.ones((h, w, 3), dtype=np.uint8) * 255
+        elif bg_color == 'black':
+            result = np.zeros((h, w, 3), dtype=np.uint8)
+        elif bg_color == 'gray':
+            result = np.ones((h, w, 3), dtype=np.uint8) * 128
+
+    # 動態調整座標（根據畫布大小）
+    scale_x = w / 700
+    scale_y = h / 500
+
+    def scale_point(x, y):
+        return (int(x * scale_x), int(y * scale_y))
+
+    # 繪製各種圖形
+    if show_line:
+        # 對角線
+        cv2.line(result, scale_point(50, 50), scale_point(650, 450), (255, 0, 0), thickness)
+        # 垂直線
+        cv2.line(result, scale_point(350, 30), scale_point(350, 150), (255, 128, 0), thickness)
+
+    if show_rect:
+        # 矩形（綠色邊框）
+        cv2.rectangle(result, scale_point(100, 100), scale_point(300, 250), (0, 255, 0), thickness)
+        # 填滿矩形（半透明藍色）
+        overlay = result.copy()
+        cv2.rectangle(overlay, scale_point(320, 100), scale_point(450, 200), (255, 200, 0), -1)
+        cv2.addWeighted(overlay, 0.3, result, 0.7, 0, result)
+
+    if show_circle:
+        # 填滿圓形（紅色）
+        cv2.circle(result, scale_point(200, 350), int(50 * scale_x), (0, 0, 255), -1)
+        # 圓形邊框（青色）
+        cv2.circle(result, scale_point(550, 350), int(60 * scale_x), (255, 255, 0), thickness)
+
+    if show_ellipse:
+        # 橢圓
+        cv2.ellipse(result, scale_point(500, 150),
+                   (int(100 * scale_x), int(50 * scale_y)),
+                   0, 0, 360, (255, 165, 0), thickness)
+        # 半橢圓（笑臉）
+        cv2.ellipse(result, scale_point(200, 350),
+                   (int(30 * scale_x), int(15 * scale_y)),
+                   0, 0, 180, (255, 255, 255), 2)
+
+    if show_polygon:
+        # 五邊形
+        pts = np.array([
+            scale_point(400, 350),
+            scale_point(450, 380),
+            scale_point(480, 340),
+            scale_point(450, 300),
+            scale_point(400, 320)
+        ], np.int32)
+        cv2.polylines(result, [pts], True, (255, 0, 255), thickness)
+
+        # 三角形（填滿）
+        pts2 = np.array([
+            scale_point(520, 250),
+            scale_point(600, 250),
+            scale_point(560, 190)
+        ], np.int32)
+        cv2.fillPoly(result, [pts2], (0, 255, 255))
+
+    if show_text:
+        # 主標題
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        cv2.putText(result, 'OpenCV Drawing Functions', scale_point(50, 470),
+                   font, 0.8 * scale_x, (0, 0, 0), max(1, thickness))
+
+        # 各圖形標籤
+        if show_line:
+            cv2.putText(result, 'Line', scale_point(370, 80), font, 0.5 * scale_x, (255, 0, 0), max(1, thickness-1))
+        if show_rect:
+            cv2.putText(result, 'Rectangle', scale_point(110, 270), font, 0.5 * scale_x, (0, 255, 0), max(1, thickness-1))
+        if show_circle:
+            cv2.putText(result, 'Circle', scale_point(170, 420), font, 0.5 * scale_x, (0, 0, 255), max(1, thickness-1))
+        if show_ellipse:
+            cv2.putText(result, 'Ellipse', scale_point(470, 180), font, 0.5 * scale_x, (255, 165, 0), max(1, thickness-1))
+        if show_polygon:
+            cv2.putText(result, 'Polygon', scale_point(460, 390), font, 0.5 * scale_x, (255, 0, 255), max(1, thickness-1))
+
+    # 生成程式碼
+    shapes_list = []
+    if show_line:
+        shapes_list.append("線條")
+    if show_rect:
+        shapes_list.append("矩形")
+    if show_circle:
+        shapes_list.append("圓形")
+    if show_ellipse:
+        shapes_list.append("橢圓")
+    if show_polygon:
+        shapes_list.append("多邊形")
+    if show_text:
+        shapes_list.append("文字")
+
+    shapes_str = "、".join(shapes_list) if shapes_list else "無"
+
+    code = f'''import cv2
+import numpy as np
+
+# 建立畫布
+img = np.{'ones' if bg_color == 'white' else 'zeros'}((500, 700, 3), dtype=np.uint8)'''
+
+    if bg_color == 'white':
+        code += ' * 255'
+    elif bg_color == 'gray':
+        code = code.replace('zeros', 'ones') + ' * 128'
+
+    code += '\n\n'
+
+    if show_line:
+        code += f'''# 繪製直線
+cv2.line(img, (50, 50), (650, 450), (255, 0, 0), {thickness})  # 藍色對角線
+cv2.line(img, (350, 30), (350, 150), (255, 128, 0), {thickness})  # 橘色垂直線
+
+'''
+
+    if show_rect:
+        code += f'''# 繪製矩形
+cv2.rectangle(img, (100, 100), (300, 250), (0, 255, 0), {thickness})  # 綠色邊框
+cv2.rectangle(img, (320, 100), (450, 200), (255, 200, 0), -1)  # 填滿矩形
+
+'''
+
+    if show_circle:
+        code += f'''# 繪製圓形
+cv2.circle(img, (200, 350), 50, (0, 0, 255), -1)  # 填滿紅色圓
+cv2.circle(img, (550, 350), 60, (255, 255, 0), {thickness})  # 青色圓框
+
+'''
+
+    if show_ellipse:
+        code += f'''# 繪製橢圓
+cv2.ellipse(img, (500, 150), (100, 50), 0, 0, 360, (255, 165, 0), {thickness})
+
+'''
+
+    if show_polygon:
+        code += f'''# 繪製多邊形
+pts = np.array([[400,350], [450,380], [480,340], [450,300], [400,320]], np.int32)
+cv2.polylines(img, [pts], True, (255, 0, 255), {thickness})
+
+# 繪製填滿三角形
+pts2 = np.array([[520,250], [600,250], [560,190]], np.int32)
+cv2.fillPoly(img, [pts2], (0, 255, 255))
+
+'''
+
+    if show_text:
+        code += f'''# 繪製文字
+cv2.putText(img, 'OpenCV Drawing Functions', (50, 470),
+            cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 0), {thickness})
+
+'''
+
+    code += f'''# 顯示結果
+cv2.imshow('Drawing Demo', img)
+cv2.waitKey(0)
+cv2.destroyAllWindows()
+
+# 目前顯示: {shapes_str}
+# 線條粗細: {thickness}'''
+
     return result, code
 
 

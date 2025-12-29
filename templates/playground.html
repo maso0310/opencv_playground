@@ -1555,8 +1555,19 @@ resultImage.addEventListener('mousemove', (e) => {
         // 取得格式化的像素值
         const { mainLabel, mainValues, extraInfo } = formatPixelValues(r, g, b);
 
-        // 更新顏色預覽
-        colorPreview.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        // 更新顏色預覽（只在 RGB 模式或原始影像下顯示實際顏色）
+        const space = getCurrentColorSpace();
+        if (!space || space === 'rgb') {
+            // RGB 模式或原始影像：顯示實際顏色
+            colorPreview.style.backgroundColor = `rgb(${r}, ${g}, ${b})`;
+        } else if (currentEffect === 'gray' || space === 'gray') {
+            // 灰階：顯示灰色
+            colorPreview.style.backgroundColor = `rgb(${r}, ${r}, ${r})`;
+        } else {
+            // 其他色彩空間（HSV, LAB, HLS, YCrCb）：顯示灰色表示這不是 RGB 顏色
+            colorPreview.style.backgroundColor = `rgb(${r}, ${r}, ${r})`;
+            colorPreview.style.opacity = '0.5';
+        }
 
         // 更新主要數值顯示
         pixelValuesDisplay.innerHTML = `<small>${mainLabel}: ${mainValues}</small>`;
@@ -1575,6 +1586,7 @@ resultImage.addEventListener('mouseleave', () => {
     pixelY.textContent = '-';
     pixelValuesDisplay.innerHTML = '<small>RGB: (-, -, -)</small>';
     colorPreview.style.backgroundColor = '#ccc';
+    colorPreview.style.opacity = '1';  // 重置 opacity
     extraChannelInfo.innerHTML = '';
 });
 
